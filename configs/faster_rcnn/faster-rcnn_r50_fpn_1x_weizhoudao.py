@@ -16,17 +16,17 @@ _base_.optim_wrapper = dict(
 #   - `enable` means enable scaling LR automatically
 #       or not by default.
 #   - `base_batch_size` = (8 GPUs) x (2 samples per GPU).
-_base_.auto_scale_lr = dict(enable=True, base_batch_size=64)
+_base_.auto_scale_lr = dict(enable=True, base_batch_size=128)
 _base_.default_hooks = dict(
     timer=dict(type='IterTimerHook'),
     logger=dict(type='LoggerHook', interval=50),
     param_scheduler=dict(type='ParamSchedulerHook'),
-    checkpoint=dict(type='CheckpointHook', interval=1),
+    checkpoint=dict(type='CheckpointHook', interval=1,save_best='acc'),
     sampler_seed=dict(type='DistSamplerSeedHook'),
     visualization=dict(type='DetVisualizationHook'),
     early_stopping=dict(
         type="EarlyStoppingHook",
         monitor="loss",
         patience=5,
-        min_delta=0.005),
+        min_delta=0.0001),
     )
