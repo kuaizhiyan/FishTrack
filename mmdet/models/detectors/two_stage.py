@@ -219,12 +219,12 @@ class TwoStageDetector(BaseDetector):
                 - labels (Tensor): Labels of bboxes, has a shape
                     (num_instances, ).
                 - bboxes (Tensor): Has a shape (num_instances, 4),
-                    the last dimension 4 arrange as (x1, y1, x2, y2).
+                    the last dimension 4 arrange as (x1, y1, x2, y2). 
                 - masks (Tensor): Has a shape (num_instances, H, W).
         """
 
         assert self.with_bbox, 'Bbox head must be implemented.'
-        x = self.extract_feat(batch_inputs)
+        x = self.extract_feat(batch_inputs)     # [1,3,800,1216]->5([]), 5 个尺度的特征图
 
         # If there are no pre-defined proposals, use RPN to get proposals
         if batch_data_samples[0].get('proposals', None) is None:

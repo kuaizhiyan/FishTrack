@@ -1,8 +1,11 @@
+default_scope = 'mmdet'
 _base_ = [
-    './yolox_x_8xb4-80e_crowdhuman-mot17halftrain_test-mot17halfval.py',  # noqa: E501
+    '/home/kzy/project/PartDecoder/mmdetection/configs/_base_/models/faster-rcnn_r50_fpn.py',  # noqa: E501
 ]
-
-data_root=_base_.data_root,
+_base_.img_scale=(1333,800)
+_base_.backend_args=None
+_base_.data_root = 'data/MOT17/'
+# data_root=_base_.data_root,
 #         ann_file='annotations/test_cocoformat.json',
 dataset_type = 'MOTChallengeDataset'
 detector = _base_.model
@@ -92,18 +95,18 @@ test_pipeline = [
 ]
 
 train_dataloader = None
-val_dataloader = dict(
-    # Now StrongSORT only support video_based sampling
-    sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
-    dataset=dict(
-        _delete_=True,
-        type=dataset_type,
-        data_root=_base_.data_root,
-        ann_file='annotations/half-val_cocoformat.json',
-        data_prefix=dict(img_path='train'),
-        # when you evaluate track performance, you need to remove metainfo
-        test_mode=True,
-        pipeline=test_pipeline))
+# val_dataloader = dict(
+#     # Now StrongSORT only support video_based sampling
+#     sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
+#     dataset=dict(
+#         _delete_=True,
+#         type=dataset_type,
+#         data_root=_base_.data_root,
+#         ann_file='annotations/half-val_cocoformat.json',
+#         data_prefix=dict(img_path='train'),
+#         # when you evaluate track performance, you need to remove metainfo
+#         test_mode=True,
+#         pipeline=test_pipeline))
 
 # test_dataloader = dict(
 #     batch_size=1,
@@ -140,20 +143,20 @@ train_cfg = None
 optim_wrapper = None
 
 # evaluator
-val_evaluator = dict(
-    _delete_=True,
-    type='MOTChallengeMetric',
-    metric=['HOTA', 'CLEAR', 'Identity'],
-    # use_postprocess to support AppearanceFreeLink in val_evaluator
-    use_postprocess=True,
-    postprocess_tracklet_cfg=[
-        dict(
-            type='InterpolateTracklets',
-            min_num_frames=5,
-            max_num_frames=20,
-            use_gsi=True,
-            smooth_tau=10)
-    ])
+# val_evaluator = dict(
+#     _delete_=True,
+#     type='MOTChallengeMetric',
+#     metric=['HOTA', 'CLEAR', 'Identity'],
+#     # use_postprocess to support AppearanceFreeLink in val_evaluator
+#     use_postprocess=True,
+#     postprocess_tracklet_cfg=[
+#         dict(
+#             type='InterpolateTracklets',
+#             min_num_frames=5,
+#             max_num_frames=20,
+#             use_gsi=True,
+#             smooth_tau=10)
+#     ])
 test_evaluator = dict(
     _delete_=True,
     type='MOTChallengeMetric',
@@ -173,5 +176,7 @@ test_evaluator = dict(
 
 default_hooks = dict(logger=dict(type='LoggerHook', interval=1))
 
-del _base_.param_scheduler
-del _base_.custom_hooks
+# del _base_.param_scheduler
+# del _base_.custom_hooks
+# val_cfg = dict(type='ValLoop')
+test_cfg = dict(type='TestLoop')

@@ -6,9 +6,11 @@ import torch
 try:
     import mmpretrain
     from mmpretrain.models.classifiers import ImageClassifier
-except ImportError:
+    print("mmpretrain module path:", mmpretrain.__file__)
+except ImportError as e:
     mmpretrain = None
     ImageClassifier = object
+    print("Error importing mmpretrain:", e)
 
 from mmdet.registry import MODELS
 from mmdet.structures import ReIDDataSample

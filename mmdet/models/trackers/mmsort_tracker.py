@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from mmengine.structures import InstanceData
 
 try:
@@ -18,31 +19,11 @@ from mmdet.structures.bbox import bbox_overlaps, bbox_xyxy_to_cxcyah
 from mmdet.utils import OptConfigType
 from ..utils import imrenormalize
 from .base_tracker import BaseTracker
+from .sort_tracker import SORTTracker
 
 
 @MODELS.register_module()
-class SORTTracker(BaseTracker):
-    """Tracker for SORT/DeepSORT.
-
-    Args:
-        obj_score_thr (float, optional): Threshold to filter the objects.
-            Defaults to 0.3.
-        motion (dict): Configuration of motion. Defaults to None.
-        reid (dict, optional): Configuration for the ReID model.
-            - num_samples (int, optional): Number of samples to calculate the
-                feature embeddings of a track. Default to 10.
-            - image_scale (tuple, optional): Input scale of the ReID model.
-                Default to (256, 128).
-            - img_norm_cfg (dict, optional): Configuration to normalize the
-                input. Default to None.
-            - match_score_thr (float, optional): Similarity threshold for the
-                matching process. Default to 2.0.
-        match_iou_thr (float, optional): Threshold of the IoU matching process.
-            Defaults to 0.7.
-        num_tentatives (int, optional): Number of continuous frames to confirm
-            a track. Defaults to 3.
-    """
-
+class MMSORTTracker(SORTTracker):
     def __init__(self,
                  motion: Optional[dict] = None,
                  obj_score_thr: float = 0.3,
@@ -53,66 +34,69 @@ class SORTTracker(BaseTracker):
                      match_score_thr=2.0),
                  match_iou_thr: float = 0.7,
                  num_tentatives: int = 3,
+                 text_factor: float = 0.0001,
                  **kwargs):
         if motmetrics is None:
             raise RuntimeError('motmetrics is not installed,\
                  please install it by: pip install motmetrics')
-        super().__init__(**kwargs)
-        if motion is not None:
-            self.motion = TASK_UTILS.build(motion)
-            assert self.motion is not None, 'SORT/Deep SORT need KalmanFilter'  # 创建卡尔曼滤波器
-        self.obj_score_thr = obj_score_thr      # 0.5
-        self.reid = reid                        # reid 模型的一些参数
-        self.match_iou_thr = match_iou_thr      # 0.5
-        self.num_tentatives = num_tentatives    # 2
+        
+        # ✅ 在 kwargs 里移除 text_factor，防止传递给 SORTTracker
+        kwargs.pop('text_factor', None)
+            
+        # ✅ 这里显式传递参数给 SORTTracker
+        super().__init__(
+            motion=motion,
+            obj_score_thr=obj_score_thr,
+            reid=reid,
+            match_iou_thr=match_iou_thr,
+            num_tentatives=num_tentatives,
+            **kwargs
+        )
 
-    @property
-    def confirmed_ids(self) -> List:
-        """Confirmed ids in the tracker."""
-        ids = [id for id, track in self.tracks.items() if not track.tentative]
-        return ids
+        self.text_factor = text_factor  # ✅ 这样才不会丢失参数
+    
 
-    def init_track(self, id: int, obj: Tuple[Tensor]) -> None:
-        """Initialize a track."""
-        super().init_track(id, obj)
-        self.tracks[id].tentative = True
-        bbox = bbox_xyxy_to_cxcyah(self.tracks[id].bboxes[-1])  # size = (1, 4)
-        assert bbox.ndim == 2 and bbox.shape[0] == 1
-        bbox = bbox.squeeze(0).cpu().numpy()
-        self.tracks[id].mean, self.tracks[id].covariance = self.kf.initiate(
-            bbox)
+    def compute_text_embedding_distance(self,
+                                    track_labels: torch.Tensor, 
+                                    labels: torch.Tensor, 
+                                    label_embedding_dict: dict) -> torch.Tensor:
+        """
+        计算当前帧目标标签 `track_labels` 和上一帧目标标签 `labels` 之间的文本嵌入余弦距离，并整体 +1。
 
-    def update_track(self, id: int, obj: Tuple[Tensor]) -> None:
-        """Update a track."""
-        super().update_track(id, obj)
-        if self.tracks[id].tentative:
-            if len(self.tracks[id]['bboxes']) >= self.num_tentatives:
-                self.tracks[id].tentative = False
-        bbox = bbox_xyxy_to_cxcyah(self.tracks[id].bboxes[-1])  # size = (1, 4)
-        assert bbox.ndim == 2 and bbox.shape[0] == 1
-        bbox = bbox.squeeze(0).cpu().numpy()
-        self.tracks[id].mean, self.tracks[id].covariance = self.kf.update(
-            self.tracks[id].mean, self.tracks[id].covariance, bbox)
+        Args:
+            labels (torch.Tensor): 当前帧目标的 label，形状为 (N,)。
+            track_labels (torch.Tensor): 上一帧目标的 label，形状为 (M, )。
+            label_embedding_dict (dict): label 到 text embedding 的映射，{int: torch.Tensor}，每个 embedding 形状为 (D,)。
 
-    def pop_invalid_tracks(self, frame_id: int) -> None:
-        """Pop out invalid tracks."""
-        invalid_ids = []
-        for k, v in self.tracks.items():
-            # case1: disappeared frames >= self.num_frames_retrain
-            case1 = frame_id - v['frame_ids'][-1] >= self.num_frames_retain
-            # case2: tentative tracks but not matched in this frame
-            case2 = v.tentative and v['frame_ids'][-1] != frame_id
-            if case1 or case2:
-                invalid_ids.append(k)
-        for invalid_id in invalid_ids:
-            self.tracks.pop(invalid_id)
+        Returns:
+            torch.Tensor: 计算得到的余弦距离矩阵，形状为 (N, M)，整体加 1 使其 > 0。
+        """
+        if track_labels.numel() == 0 or labels.numel() == 0:
+            return torch.empty((len(track_labels), len(labels)))
+        # 获取上一帧的 text embedding
+        track_embeddings = torch.stack([label_embedding_dict[int(label)] for label in track_labels], dim=0)  # (N, D)
+        # 获取当前帧的 text embedding
+        label_embeddings = torch.stack([label_embedding_dict[int(label)] for label in labels], dim=0)  # (M, D)
+        
+        # 归一化 embedding，计算余弦相似度
+        track_embeddings = F.normalize(track_embeddings, p=2, dim=-1)  # (N, D)
+        label_embeddings = F.normalize(label_embeddings, p=2, dim=-1)  # (M, D)
 
+        # 计算余弦距离
+        cosine_distance = 1 - torch.mm(track_embeddings, label_embeddings.T)  # (N, M)
+
+        # 整体加 1，确保值 > 0
+        return cosine_distance + 1
+
+
+    
     def track(self,
               model: torch.nn.Module,                       # 只用到， model.reid
               img: Tensor,                                  #  'The img must be 5D Tensor (N, T, C, H, W).'  # [1,1,3,640,1088]，只是tensor 之后的
               data_sample: DetDataSample,                   # ok 
               data_preprocessor: OptConfigType = None,      # 只使用到归一化参数，需要修改
               rescale: bool = False,
+              label_embedding_dict: dict = None,
               **kwargs) -> InstanceData:
         """Tracking forward function.
 
@@ -160,7 +144,7 @@ class SORTTracker(BaseTracker):
 
         valid_inds = scores > self.obj_score_thr    # 筛选出大于阈值的 box ，关键在于开放集的 labels 处如何处理
         bboxes = bboxes[valid_inds]
-        labels = labels[valid_inds]     # tensor([100])
+        labels = labels[valid_inds]                 # tensor([100])
         scores = scores[valid_inds]
 
         # tracker 初始化
@@ -199,15 +183,24 @@ class SORTTracker(BaseTracker):
                         active_ids,
                         self.reid.get('num_samples', None),
                         behavior='mean')
-                    reid_dists = torch.cdist(track_embeds, embeds)  # 新旧 emb 计算 cosine 距离 [78,128] [100,128]->[78,100]
+                    reid_dists = torch.cdist(track_embeds, embeds)  # 新旧 emb 计算 cosine 距离
 
                     # support multi-class association
                     track_labels = torch.tensor([
                         self.tracks[id]['labels'][-1] for id in active_ids
                     ]).to(bboxes.device)
                     cate_match = labels[None, :] == track_labels[:, None]
-                    cate_cost = (1 - cate_match.int()) * 1e6            # 支撑多类别匹配，所以分类损失是 0 
-                    reid_dists = (reid_dists + cate_cost).cpu().numpy() # reid_dists: [e-3,e-5] 区间内
+                    cate_cost = (1 - cate_match.int()) * 1e6            # 支撑多类别匹配，所以分类损失是 0
+                    
+                    # 计算标签距离
+                    label_dists = 0
+                    if label_embedding_dict is not None:
+                        label_dists = self.compute_text_embedding_distance(track_labels=track_labels,
+                                                                           labels=labels,
+                                                                           label_embedding_dict=label_embedding_dict
+                                                                            )
+                        
+                    reid_dists = (reid_dists + cate_cost + label_dists*self.text_factor).cpu().numpy()
 
                     valid_inds = [list(self.ids).index(_) for _ in active_ids]
                     reid_dists[~np.isfinite(costs[valid_inds, :])] = np.nan
@@ -237,7 +230,13 @@ class SORTTracker(BaseTracker):
                 cate_match = labels[None, active_dets] == track_labels[:, None]     # 为了满足多标签匹配，进行升维
                 cate_cost = (1 - cate_match.int()) * 1e6        # 分类 cost，都是 0，忽略了类别影响 [100,100]
 
-                dists = (1 - ious + cate_cost).cpu().numpy()    # (100,100)
+                label_dists = 0
+                if label_embedding_dict is not None:
+                    label_dists = self.compute_text_embedding_distance(track_labels=track_labels,
+                                                                        labels=labels[active_dets],
+                                                                        label_embedding_dict=label_embedding_dict
+                                                                        )
+                dists = (1 - ious + cate_cost + label_dists*self.text_factor).cpu().numpy()    # (100,100)
 
                 row, col = linear_sum_assignment(dists)         # (100,) (100,)
                 for r, c in zip(row, col):

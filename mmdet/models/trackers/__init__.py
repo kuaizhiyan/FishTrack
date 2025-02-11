@@ -6,8 +6,9 @@ from .ocsort_tracker import OCSORTTracker
 from .quasi_dense_tracker import QuasiDenseTracker
 from .sort_tracker import SORTTracker
 from .strongsort_tracker import StrongSORTTracker
+from .mmsort_tracker import MMSORTTracker
 
 __all__ = [
     'BaseTracker', 'ByteTracker', 'QuasiDenseTracker', 'SORTTracker',
-    'StrongSORTTracker', 'OCSORTTracker', 'MaskTrackRCNNTracker'
+    'StrongSORTTracker', 'OCSORTTracker', 'MaskTrackRCNNTracker','MMSORTTracker'
 ]

@@ -35,7 +35,7 @@ class DeepSORT(BaseMOTModel):
         super().__init__(data_preprocessor, init_cfg)
 
         if detector is not None:
-            self.detector = MODELS.build(detector)
+             self.detector = MODELS.build(detector)
 
         if reid is not None:
             self.reid = MODELS.build(reid)
@@ -76,7 +76,7 @@ class DeepSORT(BaseMOTModel):
             Tracking results of the input videos.
             Each DetDataSample usually contains ``pred_track_instances``.
         """
-        assert inputs.dim() == 5, 'The img must be 5D Tensor (N, T, C, H, W).'
+        assert inputs.dim() == 5, 'The img must be 5D Tensor (N, T, C, H, W).'  # [1,1,3,640,1088]
         assert inputs.size(0) == 1, \
             'SORT/DeepSORT inference only support ' \
             '1 batch size per gpu for now.'
@@ -94,7 +94,7 @@ class DeepSORT(BaseMOTModel):
             img_data_sample = track_data_sample[frame_id]
             single_img = inputs[:, frame_id].contiguous()
             # det_results List[DetDataSample]
-            det_results = self.detector.predict(single_img, [img_data_sample])
+            det_results = self.detector.predict(single_img, [img_data_sample])      # DetDataSample 类，包含了instances(所有 dect 结果) ,metainfo 等信息
             assert len(det_results) == 1, 'Batch inference is not supported.'
 
             pred_track_instances = self.tracker.track(

@@ -26,14 +26,14 @@ class BaseTracker(metaclass=ABCMeta):
         if momentums is not None:
             assert isinstance(momentums, dict), 'momentums must be a dict'
         self.momentums = momentums
-        self.num_frames_retain = num_frames_retain
+        self.num_frames_retain = num_frames_retain  # 100
 
         self.reset()
 
     def reset(self) -> None:
         """Reset the buffer of the tracker."""
         self.num_tracks = 0
-        self.tracks = dict()
+        self.tracks = dict()        # 用一个 dict 保存轨迹
 
     @property
     def empty(self) -> bool:
@@ -56,9 +56,9 @@ class BaseTracker(metaclass=ABCMeta):
         Args:
             kwargs (dict[str: Tensor | int]): The `str` indicates the
                 name of the input variable. `ids` and `frame_ids` are
-                obligatory in the keys.
+                obligatory in the keys.         kwargs 是从上层传来的参数： {ids:[100],bboxes:[100,4],scores,labels:,embeds:[100,128]}
         """
-        memo_items = [k for k, v in kwargs.items() if v is not None]
+        memo_items = [k for k, v in kwargs.items() if v is not None]    # 保留 dict 的 key(str):['ids', 'bboxes', 'scores', 'labels', 'embeds', 'frame_ids']
         rm_items = [k for k in kwargs.keys() if k not in memo_items]
         for item in rm_items:
             kwargs.pop(item)
@@ -69,18 +69,18 @@ class BaseTracker(metaclass=ABCMeta):
 
         assert 'ids' in memo_items
         num_objs = len(kwargs['ids'])
-        id_indice = memo_items.index('ids')
+        id_indice = memo_items.index('ids')     # 'ids' 在 memo_items 中的索引
         assert 'frame_ids' in memo_items
-        frame_id = int(kwargs['frame_ids'])
+        frame_id = int(kwargs['frame_ids'])     # 获取 frame_id
         if isinstance(kwargs['frame_ids'], int):
             kwargs['frame_ids'] = torch.tensor([kwargs['frame_ids']] *
-                                               num_objs)
+                                               num_objs)        # 按照 frame 中目标个个数，复制 frame_id
         # cur_frame_id = int(kwargs['frame_ids'][0])
         for k, v in kwargs.items():
             if len(v) != num_objs:
                 raise ValueError('kwargs value must both equal')
 
-        for obj in zip(*kwargs.values()):
+        for obj in zip(*kwargs.values()):       # 取出每一条结果
             id = int(obj[id_indice])
             if id in self.tracks:
                 self.update_track(id, obj)
@@ -114,7 +114,7 @@ class BaseTracker(metaclass=ABCMeta):
         for k, v in zip(self.memo_items, obj):
             v = v[None]
             if self.momentums is not None and k in self.momentums:
-                self.tracks[id][k] = v
+                self.tracks[id][k] = v      # {id:bbox}
             else:
                 self.tracks[id][k] = [v]
 

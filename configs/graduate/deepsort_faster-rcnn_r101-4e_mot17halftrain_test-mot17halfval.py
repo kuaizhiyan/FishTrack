@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/models/faster-rcnn_r50_fpn.py',
+    '../faster_rcnn/faster-rcnn_r101_fpn_ms-3x_coco.py',
     '../_base_/datasets/mot_challenge.py', '../_base_/default_runtime.py'
 ]
 

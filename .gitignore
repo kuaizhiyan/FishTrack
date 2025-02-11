@@ -116,6 +116,11 @@ data
 docs/modelzoo_statistics.md
 mmdet/.mim
 work_dirs/
+checkpoints/
+deepsort_format_test/
+mot_17_test_res/
+results/
+strongsort_mot17/
 
 # Pytorch
 *.pth

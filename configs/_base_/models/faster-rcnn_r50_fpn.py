@@ -111,4 +111,6 @@ model = dict(
             max_per_img=100)
         # soft-nms is also supported for rcnn testing
         # e.g., nms=dict(type='soft_nms', iou_threshold=0.5, min_score=0.05)
-    ))
+    ),
+    init_cfg=dict(type='Pretrained', checkpoint='/home/kzy/project/PartDecoder/mmdetection/checkpoints/faster-rcnn_x101-32x8d_fpn_ms-3x_coco'),
+    )
