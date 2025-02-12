@@ -21,7 +21,7 @@ train_pipeline = [
                 type='RandomResize',
                 scale=img_scale,
                 ratio_range=(0.8, 1.2),
-                keep_ra tio=True,
+                keep_ratio=True,
                 clip_object_border=False),
             dict(type='PhotoMetricDistortion')
         ]),
@@ -65,7 +65,7 @@ train_dataloader = dict(
         visibility_thr=-1,
         ann_file='annotations/half-train_cocoformat.json',
         data_prefix=dict(img_path='train'),
-        metainfo=dict(classes=('pedestrian', )),
+        metainfo=dict(classes=('fish', )),
         pipeline=train_pipeline))
 val_dataloader = dict(
     batch_size=1,
