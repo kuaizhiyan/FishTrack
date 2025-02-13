@@ -40,8 +40,8 @@ classes = (
 
 # model settings
 model = _base_.model
-model['init_cfg'] = dict(type='Pretrained',
-                         checkpoint='/home/kzy/project/PartDecoder/mmdetection/work_dirs/yolox_s_8xb8-weizhoudao/best_coco_bbox_mAP_epoch_95.pth')
+# model['init_cfg'] = dict(type='Pretrained',
+#                          checkpoint='/home/kzy/project/PartDecoder/mmdetection/work_dirs/yolox_s_8xb8-weizhoudao/best_coco_bbox_mAP_epoch_95.pth')
 
 
 # dataset settings
@@ -125,13 +125,13 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=8,
+    batch_size=32,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=train_dataset)
 val_dataloader = dict(
-    batch_size=8,
+    batch_size=32,
     num_workers=4,
     persistent_workers=True,
     drop_last=False,
@@ -155,7 +155,7 @@ val_evaluator = dict(
 test_evaluator = val_evaluator
 
 # training settings
-max_epochs = 200
+max_epochs = 300
 num_last_epochs = 15
 interval = 1
 
@@ -226,4 +226,4 @@ custom_hooks = [
 # NOTE: `auto_scale_lr` is for automatically scaling LR,
 # USER SHOULD NOT CHANGE ITS VALUES.
 # base_batch_size = (8 GPUs) x (8 samples per GPU)
-auto_scale_lr = dict(base_batch_size=64)
+auto_scale_lr = dict(base_batch_size=32)
