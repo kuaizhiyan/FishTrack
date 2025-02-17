@@ -83,6 +83,7 @@ def main():
             video_name for video_name in video_names if 'FRCNN' in video_name
         ]
     is_mot15 = True if 'MOT15' in in_folder else False
+    # 将所有图像标注写入 Imgs 文件夹
     for video_name in tqdm(video_names):
         # load video infos
         video_folder = osp.join(in_folder, video_name)
@@ -95,6 +96,7 @@ def main():
         num_raw_imgs = int(infos[4].strip().split('=')[1])
         assert num_raw_imgs == len(raw_img_names)
 
+        # 生成 train 文件夹
         reid_train_folder = osp.join(args.output, 'imgs')
         if not osp.exists(reid_train_folder):
             os.makedirs(reid_train_folder)
@@ -138,6 +140,7 @@ def main():
     reid_train_list = []
     reid_val_list = []
     reid_img_folder_names = sorted(os.listdir(reid_train_folder))
+    # 划分 train ids
     num_ids = len(reid_img_folder_names)
     num_train_ids = int(num_ids * (1 - args.val_split))
     train_label, val_label = 0, 0
@@ -157,6 +160,8 @@ def main():
                 f'{reid_img_folder_name}/{reid_img_name} {train_label}\n')
         train_label += 1
     reid_entire_dataset_list = reid_train_list.copy()
+    
+    # 划分 val 
     for reid_img_folder_name in reid_img_folder_names[num_train_ids:]:
         reid_img_names = os.listdir(
             f'{reid_train_folder}/{reid_img_folder_name}')
@@ -174,6 +179,8 @@ def main():
                 f'{reid_img_folder_name}/{reid_img_name} '
                 f'{train_label + val_label}\n')
         val_label += 1
+        
+    # 写入标注文件
     with open(
             osp.join(reid_meta_folder,
                      f'train_{int(100 * (1 - args.val_split))}.txt'),
