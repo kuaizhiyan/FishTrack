@@ -148,5 +148,117 @@ class MMGEA(BaseTransform):
         mask = mask.index_put((lx,ly),replace_value)
         mask = mask.numpy()
         return mask
+
+@TRANSFORMS.register_module()
+class GridMask(BaseTransform):
+    """
+    GridMask 数据增强，用于遮挡图像部分区域，提高模型的鲁棒性。
+    该方法会在 `results['img']` 上应用网格遮挡，并返回修改后的 `results`。
+    """
+    def __init__(self, use_h=True, use_w=True, d1=24, d2=56, ratio=0.5, rotate=0, offset=False):
+        """
+        初始化 GridMask 参数。
         
+        Args:
+            use_h (bool): 是否在垂直方向应用 GridMask。
+            use_w (bool): 是否在水平方向应用 GridMask。
+            d1 (int): 最小网格间距。
+            d2 (int): 最大网格间距。
+            ratio (float): 遮挡区域的比例。
+            rotate (int): 旋转角度。
+            offset (bool): 是否随机偏移网格。
+        """
+        self.use_h = use_h
+        self.use_w = use_w
+        self.d1 = d1
+        self.d2 = d2
+        self.ratio = ratio
+        self.rotate = rotate
+        self.offset = offset
+
+    def transform(self, results: dict) -> dict:
+        """
+        在图像上应用 GridMask。
         
+        Args:
+            results (dict): MMDetection 数据增强的输入字典。
+        
+        Returns:
+            dict: 处理后的 `results` 字典。
+        """
+        img = results['img']
+        img_h, img_w = img.shape[1],img.shape[0]
+        
+        d = random.randint(self.d1, self.d2)  # 选择网格大小
+        l = int(d * self.ratio)  # 计算遮挡区域的大小
+
+        mask = np.ones((img_h, img_w), dtype=np.float32)
+        
+        if self.offset:
+            offset_x = random.randint(0, d)
+            offset_y = random.randint(0, d)
+        else:
+            offset_x, offset_y = 0, 0
+
+        for y in range(offset_y, img_h, d):
+            for x in range(offset_x, img_w, d):
+                y1, y2 = y, min(y + l, img_h)
+                x1, x2 = x, min(x + l, img_w)
+                mask[y1:y2, x1:x2] = 0  # 应用遮挡
+
+        if self.rotate > 0:
+            center = (img_w // 2, img_h // 2)
+            rotation_matrix = cv2.getRotationMatrix2D(center, self.rotate, 1.0)
+            mask = cv2.warpAffine(mask, rotation_matrix, (img_w, img_h))
+
+        mask = mask[:, :, np.newaxis]  # 添加通道维度
+        results['img'] = img * mask  # 应用 GridMask
+        
+        return results
+
+@TRANSFORMS.register_module()
+class HideAndSeek(BaseTransform):
+    """
+    Hide-and-Seek 数据增强，随机遮挡图像的一部分，提高模型的鲁棒性。
+    该方法会在 `results['img']` 上应用随机区域遮挡，并返回修改后的 `results`。
+    """
+    def __init__(self, grid_size=8, hide_prob=0.5):
+        """
+        初始化 Hide-and-Seek 参数。
+        
+        Args:
+            grid_size (int): 图像划分的网格数量（每行每列的划分数）。
+            hide_prob (float): 每个网格被遮挡的概率。
+        """
+        self.grid_size = grid_size
+        self.hide_prob = hide_prob
+
+    def transform(self, results: dict) -> dict:
+        """
+        在图像上应用 Hide-and-Seek。
+        
+        Args:
+            results (dict): MMDetection 数据增强的输入字典。
+        
+        Returns:
+            dict: 处理后的 `results` 字典。
+        """
+        img = results['img']
+        img_w, img_h = img.shape[:2]
+        
+        grid_h = img_h // self.grid_size
+        grid_w = img_w // self.grid_size
+        
+        mask = np.ones((img_h, img_w), dtype=np.float32)
+        
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if random.random() < self.hide_prob:
+                    y1, y2 = i * grid_h, (i + 1) * grid_h
+                    x1, x2 = j * grid_w, (j + 1) * grid_w
+                    mask[y1:y2, x1:x2] = 0  # 应用遮挡
+        
+        mask = mask[:, :, np.newaxis]  # 添加通道维度
+        results['img'] = img * mask  # 应用 Hide-and-Seek
+        
+        return results

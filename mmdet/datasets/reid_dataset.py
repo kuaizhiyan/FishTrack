@@ -108,7 +108,7 @@ class ReIDDataset(BaseDataset):
             pos_idxs.shape[0], ins_per_id, replace=True)])
         # select negative ids
         neg_pids = np.random.choice(
-            [i for i, _ in enumerate(self.pids) if i != pos_pid],
+            [i for _, i in enumerate(self.pids) if i != pos_pid],
             num_ids - 1,
             replace=False)
         # select negative samplers for each negative id

@@ -58,7 +58,7 @@ model = dict(
             num_stages=4,
             out_indices=(3, ),
             style='pytorch'),
-        neck=dict(type='GlobalAveragePooling', kernel_size=(8, 4), stride=1),
+        neck=dict(type='GlobalAveragePooling', kernel_size=(4, 8), stride=1),
         head=dict(
             type='LinearReIDHead',
             num_fcs=1,
@@ -70,11 +70,12 @@ model = dict(
             loss_triplet=dict(type='TripletLoss', margin=0.3, loss_weight=1.0),
             norm_cfg=dict(type='BN1d'),
             act_cfg=dict(type='ReLU')),
-        init_cfg=dict(
-            type='Pretrained',
-            checkpoint=  # noqa: E251
-            'https://download.openmmlab.com/mmtracking/mot/reid/tracktor_reid_r50_iter25245-a452f51f.pth'  # noqa: E501
-        )),
+        # init_cfg=dict(
+        #     type='Pretrained',
+        #     checkpoint=  # noqa: E251
+        #     'https://download.openmmlab.com/mmtracking/mot/reid/tracktor_reid_r50_iter25245-a452f51f.pth'  # noqa: E501
+        # )
+        ),
     tracker=dict(
         type='SORTTracker',
         motion=dict(type='KalmanFilter', center_only=False),

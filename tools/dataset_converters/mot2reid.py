@@ -21,7 +21,7 @@
 #   5: 'motorbike'
 #   6: 'non motorized vehicle'
 #   7: 'static person'
-#   8: 'distractor'
+#   8: 'distractor' 
 #   9: 'occluder'
 #   10: 'occluder on the ground',
 #   11: 'occluder full'
