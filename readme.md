@@ -52,6 +52,8 @@ yolox_s 配置文件：./configs/yolox/yolox_s_8xb8-weizhoudao.py
 
 yolox_s 权重：https://drive.google.com/file/d/1w9xUgDkQzTwKqjlbg1CceJnFowY1Kvsy/view?usp=drive_link
 
+yolox_s 权重本地位置：/share/Lab_Datasets/kzy/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth
+
 训练指令： 
 ```bash
 python tools/train.py ./configs/yolox/yolox_s_8xb8-weizhoudao.py
@@ -132,14 +134,16 @@ python tracking_mmdeepsort.py "../tracking_demo/bdd_val_track" "configs/Groundin
 
 
 ## 五、 数据可视化
-### 4.1 训练过程可视化
+### 1. 训练过程可视化
 官方教程：https://mmdetection.readthedocs.io/zh-cn/latest/user_guides/useful_tools.html#
 
 以下是本项目简要的运行示例
 
-### 4.2 检测可视化
+### 2. 检测可视化
 
 官方教程：https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/inference.md
+
+可以使用 图片/图片路径
 
 ```bash
 python demo/image_demo.py data/fish_track/train/fish2/img1/1.jpg \
