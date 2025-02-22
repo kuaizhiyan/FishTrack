@@ -61,4 +61,5 @@ model = dict(
     # In order to align the source code, the threshold of the val phase is
     # 0.01, and the threshold of the test phase is 0.001.
     test_cfg=dict(score_thr=0.01, nms=dict(type='nms', iou_threshold=0.65)),
-    init_cfg=dict(type='Pretrained',checkpoint='/home/kzy/project/PartDecoder/mmdetection/checkpoints/yolox_s_8x8_300e_coco_20211121_095711-4592a793.pth'))
+    init_cfg=dict(type='Pretrained',
+                  checkpoint='/home/kzy/project/PartDecoder/mmdetection/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth'))
