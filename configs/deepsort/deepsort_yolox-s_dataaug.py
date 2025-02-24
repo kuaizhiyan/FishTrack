@@ -133,5 +133,6 @@ test_evaluator = dict(
     postprocess_tracklet_cfg=[
         dict(type='InterpolateTracklets', min_num_frames=5, max_num_frames=20)
     ],
-    format_only=True,
-    outfile_prefix='./work_dirs/deepsort_yolox-s_fishtrack_test1')
+    format_only=False,
+    # outfile_prefix='./work_dirs/deepsort_yolox-s_fishtrack_test1'
+    )
