@@ -60,6 +60,9 @@ model = dict(
     train_cfg=dict(assigner=dict(type='SimOTAAssigner', center_radius=2.5)),
     # In order to align the source code, the threshold of the val phase is
     # 0.01, and the threshold of the test phase is 0.001.
-    test_cfg=dict(score_thr=0.01, nms=dict(type='nms', iou_threshold=0.65)),
+    test_cfg=dict(score_thr=0.01, nms=dict(type='nms', iou_threshold=0.2)),
     init_cfg=dict(type='Pretrained',
-                  checkpoint='/home/kzy/project/PartDecoder/mmdetection/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth'))
+                #   checkpoint='/home/kzy/project/PartDecoder/mmdetection/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth'
+                checkpoint='/share/Lab_Datasets/kzy/models/best_coco_bbox_mAP_epoch_600.pth'
+                  )
+    )
