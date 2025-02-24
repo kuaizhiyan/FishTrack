@@ -122,6 +122,7 @@ mot_17_test_res/
 results/
 strongsort_mot17/
 models/
+outputs/
 
 # Pytorch
 *.pth
