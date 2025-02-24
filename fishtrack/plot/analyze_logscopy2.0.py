@@ -9,7 +9,6 @@ import seaborn as sns
 from scipy.signal import argrelextrema, savgol_filter
 from scipy.ndimage import gaussian_filter1d
 
-
 # 读取JSON训练日志并返回step和metric数据
 def read_json_log(file_path, metric="accuracy_top-1"):
     """读取 JSON 训练日志，并返回 step 和 metric 数据"""
