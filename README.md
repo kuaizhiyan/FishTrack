@@ -50,9 +50,9 @@ TrackEval 自定义数据集及评估方法： https://github.com/JonathonLuiten
 
 yolox_s 配置文件：./configs/yolox/yolox_s_8xb8-weizhoudao.py
 
-yolox_s 权重：https://drive.google.com/file/d/1w9xUgDkQzTwKqjlbg1CceJnFowY1Kvsy/view?usp=drive_link
+权重文件：[Google Drive](https://drive.google.com/file/d/1w9xUgDkQzTwKqjlbg1CceJnFowY1Kvsy/view?usp=drive_link)
 
-yolox_s 权重本地位置：/share/Lab_Datasets/kzy/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth
+权重文件（本地）：/share/Lab_Datasets/kzy/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth
 
 训练指令： 
 ```bash
@@ -64,20 +64,37 @@ reid 网络的训练，在 mmpretrain 中进行，然后在 mmdet 中加载权�
 
 #### GEA 数据增强
 
-配置文件：/home/kzy/project/PartDecoder/mmdetection/configs/reid/reid_r50_fishreid_dataaug.py
+配置文件：configs/reid/reid_r50_fishreid_dataaug.py
+
+模型文件：mmdet/datasets/transforms/gea.py
 
 工作空间：/home/kzy/project/PartDecoder/mmdetection/work_dirs/reid_r50_fishreid_dataaug
 
-命令：
+训练指令：
 ```bash
 python tools/train.py configs/reid/reid_r50_fishreid_dataaug.py
 ```
 
-权重文件：
+权重文件：[Google Drive](https://drive.google.com/file/d/139Sd3m6s54KMHcK1gFXKDpM00EwnCNtJ/view?usp=drive_link)
+
+权重文件（本地）：/share/Lab_Datasets/wd/gea/gea2.pth
 
 #### MPE 多路径增强
 
+配置文件： configs/reid/reid_r50_fishreid_attention.py
+
+模型文件：
+
+工作空间：
+
+命令：
+```bash
+python tools/train.py configs/reid/reid_r50_fishreid_attention.py
+```
+
 #### PMNet
+
+
 
 
 ## 三、 测试
