@@ -16,18 +16,23 @@ class MPE(nn.Module):
 
         # 1x1卷积层，用于生成空间权重
         self.conv1x1 = nn.Conv2d(in_channels // g, 1, kernel_size=1, stride=1, padding=0)
+        self.bn_conv1x1 == nn.BatchNorm2d(1)
 
         # 用于生成通道注意力
         self.channel_pool = nn.AdaptiveAvgPool2d(1)  # 全局平均池化
 
         # 通道降维层
         self.channel_fc1 = nn.Conv2d(in_channels // g, in_channels // 16, kernel_size=1)
+        self.bn_fc1 = nn.BatchNorm2d(in_channels // 16)
         # 用于控制降维后的通道数
         self.channel_fc2 = nn.Conv2d(in_channels // 16, in_channels // g, kernel_size=1)
+        self.bn_fc2 = nn.BatchNorm2d(in_channels // g)
 
         # 全局通道 spatial fc
         self.spatial_fc1 = nn.Conv2d(g, g, kernel_size=1)
+        self.bn_spatial_fc1 = nn.BatchNorm2d(g)
         self.spatial_fc2 = nn.Conv2d(g, 1, kernel_size=1)
+        self.bn_spatial_fc2 = nn.BatchNorm2d(1)
         
     def forward(self, x):
         # 输入x: [bs, c, h, w]
@@ -40,16 +45,25 @@ class MPE(nn.Module):
         # 通道注意力：全局平均池化
         channel_att = self.channel_pool(x.view(bs * self.g, c // self.g, h, w))  # [bs * g, c/g, 1, 1]
         channel_att = self.channel_fc1(channel_att)  # [bs * g, c/g, 1, 1]
+        channel_att =  self.bn_fc1(channel_att)
+        channel_att = torch.relu(channel_att)  # ReLU 激活
+        
         channel_att = self.channel_fc2(channel_att).view(bs, self.g, c // self.g)  # [bs, g, c/g]
+        channel_att = self.bn_fc2(channel_att)
         channel_att = torch.sigmoid(channel_att)    # [bs, g, c/g]
 
         # 空间注意力：通过1x1卷积生成
         spatial_att = self.conv1x1(x.view(bs * self.g, c // self.g, h, w))  # [bs * g, 1, h, w]
-        local_spatial_att = torch.sigmoid(spatial_att.view(bs, self.g, 1, h, w))  # [bs, g, 1, h, w] 局部分组内空间注意力
+        local_spatial_att = self.bn_conv1x1(spatial_att)
+        local_spatial_att = torch.sigmoid(local_spatial_att.view(bs, self.g, 1, h, w))  # [bs, g, 1, h, w] 局部分组内空间注意力
         
         # 全局通道,搜集 局部通道中的 spatial_att
         global_spatial_att = self.spatial_fc1(spatial_att.view(bs, self.g, h, w)) # [bs, g, h, w]
+        global_spatial_att = self.bn_spatial_fc1(global_spatial_att)
+        global_spatial_att = torch.relu(global_spatial_att)
+        
         global_spatial_att = self.spatial_fc2(global_spatial_att)   # [bs, 1, h, w]
+        global_spatial_att = self.bn_spatial_fc2(global_spatial_att)
         global_spatial_att = torch.sigmoid(global_spatial_att).unsqueeze(1)      # [bs, 1, 1, h, w]
 
         # 合并通道和空间权重

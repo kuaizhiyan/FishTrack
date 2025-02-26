@@ -85,7 +85,7 @@ python tools/train.py configs/reid/reid_r50_fishreid_dataaug.py
 
 模型文件：
 
-工作空间：
+工作空间： /home/kzy/project/PartDecoder/mmdetection/work_dirs/reid_r50_fishreid_attention
 
 命令：
 ```bash
