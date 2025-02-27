@@ -14,15 +14,16 @@ model = dict(
         num_stages=4,
         out_indices=(3, ),
         style='pytorch',
-        norm_eval=False
+        norm_eval=False,
         # pretrained='torchvision://resnet50'
-        # plugins = [
-        #     dict(
-        #         position='after_conv3',
+        plugins = [
+            dict(
+                position='after_conv3',
         #         cfg = dict(type='CBAMBlock',reduction=16,kernel_size=7)
                 #cfg = dict(type='BAMBlock', reduction=16, dia_val=1)
                 #cfg = dict(type='SEAttention', reduction=8)
-                #cfg = dict(type='ECAAttention', kernel_size=3)
+                cfg = dict(type='ECAAttention', kernel_size=3),
+                
                 #cfg = dict(type='ShuffleAttention', G=8)
                 #cfg = dict(type='SpatialGroupEnhance', groups=8)
                 #cfg = dict(type='DoubleAttention')
@@ -31,8 +32,8 @@ model = dict(
                 #cfg = dict(type='TripletAttention')
                 #cfg = dict(type='CoordAtt', reduction=32)
                 #cfg = dict(type='ParNetAttention')
-        #     )
-        # ],
+            )
+        ],
         # init_cfg=dict(
         #     type='Pretrained',
             

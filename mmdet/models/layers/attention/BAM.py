@@ -17,7 +17,7 @@ class ChannelAttention(nn.Module):
 
 
         self.ca=nn.Sequential()
-        self.ca.add_module('flatten',Flatten())
+        self.ca.add_module('flatten',Flatten()) # [bs, c, 1, 1] -> [bs, c]
         for i in range(len(gate_channels)-2):
             self.ca.add_module('fc%d'%i,nn.Linear(gate_channels[i],gate_channels[i+1]))
             self.ca.add_module('bn%d'%i,nn.BatchNorm1d(gate_channels[i+1]))
@@ -26,7 +26,7 @@ class ChannelAttention(nn.Module):
         
 
     def forward(self, x) :
-        res=self.avgpool(x)
+        res=self.avgpool(x) # [bs, c ,h ,w] -> [bs, c, 1, 1]
         res=self.ca(res)
         res=res.unsqueeze(-1).unsqueeze(-1).expand_as(x)
         return res

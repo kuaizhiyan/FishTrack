@@ -13,6 +13,18 @@ from .attention.CoTAttention import CoTAttention as _CoTAttention
 from .attention.TripletAttention import TripletAttention as _TripletAttention
 from .attention.CoordAttention import CoordAtt as _CoordAtt
 from .attention.ParNetAttention import ParNetAttention as _ParNetAttention
+from .attention.MPE import MPE as _MPE
+ 
+ @MODELS.register_module()
+class MPEBlock(nn.Module):
+    
+    def __init__(self, in_channels, **kwargs):
+        super(MPEBlock, self).__init__()
+        print("======激活注意力机制模块【MPEBlock】======")
+        self.module = _MPE(in_channels = in_channels, **kwargs)
+ 
+    def forward(self, x):
+        return self.module(x)
  
  
 @MODELS.register_module()
