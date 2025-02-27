@@ -37,8 +37,7 @@ from .transformer import (MLP, AdaptivePadding, CdnQueryGenerator,
                           Mask2FormerTransformerEncoder, PatchEmbed,
                           PatchMerging, coordinate_to_encoding,
                           inverse_sigmoid, nchw_to_nlc, nlc_to_nchw)
-from .attention_layer import CBAMBlock, BAMBlock, SEAttention, ECAAttention
-
+from .attention_layer import CBAMBlock, BAMBlock, SEAttention, ECAAttention, MPEBlock, MPE_ds, APA
 # yapf: enable
 
 __all__ = [
@@ -63,5 +62,5 @@ __all__ = [
     'CdnQueryGenerator', 'Mask2FormerTransformerEncoder',
     'Mask2FormerTransformerDecoderLayer', 'Mask2FormerTransformerDecoder',
     'SinePositionalEncoding3D', 'FrozenBatchNorm2d',
-    'CBAMBlock', 'BAMBlock', 'SEAttention', 'ECAAttention'
+    'CBAMBlock', 'BAMBlock', 'SEAttention', 'ECAAttention', 'MPEBlock', 'MPE_ds', 'APA'
 ]

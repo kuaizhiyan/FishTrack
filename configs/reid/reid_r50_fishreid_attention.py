@@ -19,11 +19,13 @@ model = dict(
         plugins = [
             dict(
                 position='after_conv3',
+                 stages=(False, True, True, True),
         #         cfg = dict(type='CBAMBlock',reduction=16,kernel_size=7)
                 #cfg = dict(type='BAMBlock', reduction=16, dia_val=1)
                 #cfg = dict(type='SEAttention', reduction=8)
                 # cfg = dict(type='ECAAttention', kernel_size=3),
-                cfg = dict(type='MPEBlock',)
+                # cfg = dict(type='MPE_ds',groups=4, reduction=8, use_fc=True, global_method="avg_max")
+                cfg = dict(type='APA',use_channel_attention=True)
                 
                 #cfg = dict(type='ShuffleAttention', G=8)
                 #cfg = dict(type='SpatialGroupEnhance', groups=8)

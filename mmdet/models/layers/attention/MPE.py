@@ -4,7 +4,7 @@ from mmengine.model import BaseModule
 from torch.nn import init
 
 class PartEnhancer(BaseModule):
-    def __init__(self, in_channels, groups=8, reduction=16, use_fc=False):
+    def __init__(self, in_channels, groups=8, reduction=16, use_fc=True):
         super(PartEnhancer, self).__init__()
         assert in_channels % groups == 0, "in_channels must be divisible by groups"
         self.groups = groups
@@ -47,7 +47,7 @@ class PartEnhancer(BaseModule):
         x_grouped = x.view(B, g, c_per_group, H, W)  # [B, g, c/g, H, W]
 
         # **3️⃣ 逐组加权**
-        out = x_grouped * (1 + att_map) +  x_grouped # [B, g, c/g, H, W] * [B, g, 1, H, W]
+        out = x_grouped * (att_map) # [B, g, c/g, H, W] * [B, g, 1, H, W]
         out = out.view(B, C, H, W)  # 变回 [B, C, H, W]
 
         # **4️⃣ 通道注意力**
@@ -58,13 +58,13 @@ class PartEnhancer(BaseModule):
         channel_weight = self.sigmoid(channel_weight)  # 归一化
 
         # **5️⃣ 作用通道注意力**
-        out = out * (1 + channel_weight)  # [B, C, H, W] * [B, C, 1, 1]
+        out = out * (channel_weight + 1)   # [B, C, H, W] * [B, C, 1, 1]
 
         return out, middle_result
     
     
 class GlobalEnhancer(BaseModule):
-    def __init__(self, g, method="conv"):
+    def __init__(self, g, method="avg_max"):
         """
         g: 组的数量
         method: "conv"（默认） 或 "avg_max"
@@ -97,12 +97,13 @@ class GlobalEnhancer(BaseModule):
             fusion = torch.cat([avg_pool, max_pool], dim=1)  # [bs, 2, h, w]
             attn = self.conv(fusion)  # [bs, 2, h, w] -> [bs, 1, h, w]
 
-        attn = torch.tanh(attn)  # 归一化
+        # attn = torch.tanh(attn)  # 归一化
+        attn = self.sigmoid(attn)
         return feature_map * (1 + attn)  # 避免过度衰减
 
 
 class MPE(BaseModule):
-    def __init__(self, in_channels, groups=8, reduction=8, use_fc=False, global_method="conv"):
+    def __init__(self, in_channels, groups=4, reduction=8, use_fc=True, global_method="avg_max"):
         """
         Multi-Part Enhancer (MPE) 模块，结合局部分组注意力 (PartEnhancer) 和全局增强模块 (GlobalEnhancer)。
         主要用于增强输入特征的表达能力。
@@ -152,7 +153,95 @@ class MPE(BaseModule):
 
         return out
 
+class ChannelAttention(nn.Module):
+    """Channel Attention Module similar to CBAM"""
+    def __init__(self, in_channels, ratio=16):
+        super(ChannelAttention, self).__init__()
+        
+        # Define the two pooling operations: avg_pool and max_pool
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+        # Two fully connected layers for each pooled result
+        self.fc1 = nn.Conv2d(in_channels, in_channels // ratio, 1, bias=False)
+        self.fc2 = nn.Conv2d(in_channels // ratio, in_channels, 1, bias=False)
+
+        self.relu = nn.ReLU(inplace=True)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        # Average pooling
+        avg_out = self.avg_pool(x)
+        avg_out = self.fc1(avg_out)
+        avg_out = self.relu(avg_out)
+        avg_out = self.fc2(avg_out)
+        
+        # Max pooling
+        max_out = self.max_pool(x)
+        max_out = self.fc1(max_out)
+        max_out = self.relu(max_out)
+        max_out = self.fc2(max_out)
+        
+        # Combine the results of avg and max pooling
+        out = avg_out + max_out
+        out = self.sigmoid(out)
+        
+        # Channel attention: element-wise multiplication
+        return x * out
+
+
+class APA(BaseModule):
+
+    def __init__(self, in_planes, kernel_size=3, ratio=16, groups=1, use_channel_attention=False) -> None:
+        super().__init__()
+        self.groups = groups
+        self.use_channel_attention = use_channel_attention  # 控制通道注意力的开关
+        
+        self.conv1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes,kernel_size=kernel_size,padding=1,groups=self.groups,stride=1)
+        self.fc1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes // ratio,kernel_size=3,padding=1)
+        self.fc2 = nn.Conv2d(in_channels=in_planes//ratio,out_channels=in_planes,kernel_size=3,padding=1)
+        self.relu = torch.nn.ReLU()
+        self.sigmoid = torch.nn.Sigmoid()
+        self.gn =torch.nn.GroupNorm(num_groups=groups,num_channels=in_planes)
+        
+        # 如果选择使用通道注意力，初始化通道注意力模块
+        if self.use_channel_attention:
+            self.channel_attention = ChannelAttention(in_planes, ratio)
     
+    def channel_shuffle(self, x):
+        batchsize, num_channels, height, width = x.data.size()
+        assert num_channels % self.groups == 0 
+        group_channels = num_channels // self.groups
+        
+        x = x.reshape(batchsize, group_channels, self.groups, height, width)
+        x = x.permute(0, 2, 1, 3, 4) 
+        x = x.reshape(batchsize, num_channels, height, width)
+        
+        return x
+    
+    def forward(self,x):
+        # 可选的通道注意力模块
+        if self.use_channel_attention:
+            x = self.channel_attention(x)
+    
+        # channel shuffle
+        s_x = self.channel_shuffle(x)
+
+        # Local Alignment Module (LAM)
+        spatial_attention = (self.gn(self.conv1(s_x)))
+        
+        # Global Alignment Module (GAM)
+        spatial_attention = self.fc1(spatial_attention)
+        spatial_attention = self.fc2(spatial_attention)
+        spatial_attention = self.sigmoid(spatial_attention)
+
+        # element-wise product
+        out = s_x * spatial_attention
+
+        return out
+
+
+
 
 if __name__=='__main__':
     # **测试**
@@ -163,3 +252,5 @@ if __name__=='__main__':
     out = model(x)
 
     print(out.shape)  # 期望输出: [B, C, H, W]
+    
+
