@@ -22,7 +22,8 @@ model = dict(
         #         cfg = dict(type='CBAMBlock',reduction=16,kernel_size=7)
                 #cfg = dict(type='BAMBlock', reduction=16, dia_val=1)
                 #cfg = dict(type='SEAttention', reduction=8)
-                cfg = dict(type='ECAAttention', kernel_size=3),
+                # cfg = dict(type='ECAAttention', kernel_size=3),
+                cfg = dict(type='MPEBlock',)
                 
                 #cfg = dict(type='ShuffleAttention', G=8)
                 #cfg = dict(type='SpatialGroupEnhance', groups=8)
@@ -129,3 +130,7 @@ train_pipeline = [
 default_hooks = dict(
     checkpoint=dict(type='CheckpointHook', interval=1,save_best='auto'),
 )
+
+# custom_hooks = [
+#     # dict(type='CheckGradientsHook',interval=500,log_gradients=True)
+# ]

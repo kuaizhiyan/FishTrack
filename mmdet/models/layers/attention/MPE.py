@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
+from mmengine.model import BaseModule
+from torch.nn import init
 
-class PartEnhancer(nn.Module):
+class PartEnhancer(BaseModule):
     def __init__(self, in_channels, groups=8, reduction=16, use_fc=False):
         super(PartEnhancer, self).__init__()
         assert in_channels % groups == 0, "in_channels must be divisible by groups"
@@ -45,7 +47,7 @@ class PartEnhancer(nn.Module):
         x_grouped = x.view(B, g, c_per_group, H, W)  # [B, g, c/g, H, W]
 
         # **3️⃣ 逐组加权**
-        out = x_grouped * (1 + att_map)  # [B, g, c/g, H, W] * [B, g, 1, H, W]
+        out = x_grouped * (1 + att_map) +  x_grouped # [B, g, c/g, H, W] * [B, g, 1, H, W]
         out = out.view(B, C, H, W)  # 变回 [B, C, H, W]
 
         # **4️⃣ 通道注意力**
@@ -61,7 +63,7 @@ class PartEnhancer(nn.Module):
         return out, middle_result
     
     
-class GlobalEnhancer(nn.Module):
+class GlobalEnhancer(BaseModule):
     def __init__(self, g, method="conv"):
         """
         g: 组的数量
@@ -71,7 +73,10 @@ class GlobalEnhancer(nn.Module):
         self.method = method
 
         if method == "conv":
-            self.conv = nn.Conv2d(g, 1, kernel_size=1, bias=True)
+            self.conv = nn.Sequential(
+                nn.Conv2d(g, g, kernel_size=3, padding=1, groups=g, bias=False),
+                nn.Conv2d(g, 1, kernel_size=1, bias=True)
+            )
         elif method == "avg_max":
             self.conv = nn.Conv2d(2, 1, kernel_size=1, bias=True)  # 用于 avg + max 融合
         else:
@@ -92,13 +97,13 @@ class GlobalEnhancer(nn.Module):
             fusion = torch.cat([avg_pool, max_pool], dim=1)  # [bs, 2, h, w]
             attn = self.conv(fusion)  # [bs, 2, h, w] -> [bs, 1, h, w]
 
-        attn = self.sigmoid(attn)  # 归一化
+        attn = torch.tanh(attn)  # 归一化
         return feature_map * (1 + attn)  # 避免过度衰减
 
 
-class MPE(nn.Module):
+class MPE(BaseModule):
     def __init__(self, in_channels, groups=8, reduction=8, use_fc=False, global_method="conv"):
-         """
+        """
         Multi-Part Enhancer (MPE) 模块，结合局部分组注意力 (PartEnhancer) 和全局增强模块 (GlobalEnhancer)。
         主要用于增强输入特征的表达能力。
 
@@ -121,13 +126,30 @@ class MPE(nn.Module):
             - `"conv"`: 使用 `1x1 Conv` 进行组间融合 (默认)。
             - `"avg_max"`: 使用 `avg + max pooling` 计算全局注意力。
         """
+        
         super(MPE, self).__init__()
         self.part_enhancer = PartEnhancer(in_channels, groups=groups, reduction=reduction, use_fc=use_fc)
         self.global_enhancer = GlobalEnhancer(g=groups, method=global_method)
+        self.init_weights()
 
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+    
     def forward(self, x):
         out, spatial_att = self.part_enhancer(x)
         out = self.global_enhancer(spatial_att, out)
+
         return out
 
     

@@ -15,7 +15,7 @@ from .attention.CoordAttention import CoordAtt as _CoordAtt
 from .attention.ParNetAttention import ParNetAttention as _ParNetAttention
 from .attention.MPE import MPE as _MPE
  
- @MODELS.register_module()
+@MODELS.register_module()
 class MPEBlock(nn.Module):
     
     def __init__(self, in_channels, **kwargs):
