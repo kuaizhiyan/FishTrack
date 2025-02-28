@@ -9,11 +9,13 @@ model = dict(
         std=[58.395, 57.12, 57.375],
         to_rgb=True),
     backbone=dict(
-        type='mmpretrain.ResNet',
+        type='ResNet',
         depth=50,
         num_stages=4,
         out_indices=(3, ),
-        style='pytorch'),
+        style='pytorch',
+        norm_eval=False,
+        ),
     neck=dict(type='GlobalAveragePooling', kernel_size=(4, 8), stride=1),
     head=dict(
         type='LinearReIDHead',
@@ -92,8 +94,8 @@ train_pipeline = [
                 keep_ratio=False,
                 clip_object_border=False),
             # dict(type='RandomFlip', prob=0.5, direction='horizontal'),
-            # dict(type='MMGEA',probability=0.7,scalar=15,sl=0.3,sh=0.7),
-            dict(type='CutOut', n_holes=2, cutout_shape=[(32, 32), (64, 64)], fill_value=128), 
+            dict(type='MMGEA',probability=0.7,sh=0.5),
+            # dict(type='CutOut', n_holes=2, cutout_shape=[(32, 32), (64, 64)], fill_value=128), 
             # dict(type='GridMask')
             # dict(type='HideAndSeek')
             # dict(type='RandomErasing',n_patches=1,ratio=(0.3,0.5))

@@ -1,7 +1,9 @@
 # dataset settings
 dataset_type = 'MOTChallengeDataset'
 data_root = 'data/fish_track/'
-img_scale = (1920, 1080)
+# img_scale = (1920, 1080)
+img_scale = (640, 640)  # yolox train config
+
 
 backend_args = None
 # data pipeline

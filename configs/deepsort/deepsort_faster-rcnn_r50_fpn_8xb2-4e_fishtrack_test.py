@@ -123,5 +123,5 @@ test_evaluator = dict(
     postprocess_tracklet_cfg=[
         dict(type='InterpolateTracklets', min_num_frames=5, max_num_frames=20)
     ],
-    format_only=True,
+    format_only=False,
     outfile_prefix='./work_dirs/deepsort_frcnn_fishtrack_test1')

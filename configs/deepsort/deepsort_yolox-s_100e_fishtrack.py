@@ -78,13 +78,13 @@ model = dict(
     tracker=dict(
         type='SORTTracker',
         motion=dict(type='KalmanFilter', center_only=False),
-        obj_score_thr=0.5,
+        obj_score_thr=0.2,
         reid=dict(
             num_samples=10,
             img_scale=(256, 128),
             img_norm_cfg=None,
             match_score_thr=2.0),
-        match_iou_thr=0.5,
+        match_iou_thr=0.3,
         momentums=None,
         num_tentatives=2,
         num_frames_retain=100))
@@ -112,7 +112,7 @@ test_pipeline = [
 
 test_dataloader = dict(
     batch_size=1,
-    num_workers=2,
+    num_workers=1,
     persistent_workers=True,
     # Now we support two ways to test, image_based and video_based
     # if you want to use video_based sampling, you can use as follows
@@ -133,4 +133,4 @@ test_evaluator = dict(
         dict(type='InterpolateTracklets', min_num_frames=5, max_num_frames=20)
     ],
     format_only=True,
-    outfile_prefix='./work_dirs/deepsort_yolox-s_fishtrack_test1')
+    outfile_prefix='./work_dirs/deepsort_yolox-s_fishtrack_test_2281335')
