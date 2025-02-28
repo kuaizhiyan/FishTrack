@@ -94,7 +94,7 @@ train_pipeline = [
                 keep_ratio=False,
                 clip_object_border=False),
             # dict(type='RandomFlip', prob=0.5, direction='horizontal'),
-            dict(type='MMGEA',probability=0.7,sh=0.5),
+            dict(type='MMGEA',probability=0.7,sh=0.5,rl=0.9,thetah=),
             # dict(type='CutOut', n_holes=2, cutout_shape=[(32, 32), (64, 64)], fill_value=128), 
             # dict(type='GridMask')
             # dict(type='HideAndSeek')

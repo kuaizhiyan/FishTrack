@@ -123,7 +123,7 @@ class SORTTracker(BaseTracker):
                 The T denotes the number of key images and usually is 1 in
                 SORT method.
             data_sample (:obj:`TrackDataSample`): The data sample.
-                It includes information such as `pred_det_instances`.
+                It includes information such as `pred_det_instances`. data_sample 为空 ??
             data_preprocessor (dict or ConfigDict, optional): The pre-process
                config of :class:`TrackDataPreprocessor`.  it usually includes,
                 ``pad_size_divisor``, ``pad_value``, ``mean`` and ``std``.
@@ -137,7 +137,7 @@ class SORTTracker(BaseTracker):
             ``scores`` and ``instances_id``.
         """
         metainfo = data_sample.metainfo
-        bboxes = data_sample.pred_instances.bboxes      # data_sample 保存了目标检测结果
+        bboxes = data_sample.pred_instances.bboxes      # data_sample 保存了所有目标检测结果
         labels = data_sample.pred_instances.labels
         scores = data_sample.pred_instances.scores
 
@@ -158,7 +158,7 @@ class SORTTracker(BaseTracker):
             else:
                 reid_img = img.clone()
 
-        valid_inds = scores > self.obj_score_thr    # 筛选出大于阈值的 box ，关键在于开放集的 labels 处如何处理
+        valid_inds = scores > self.obj_score_thr    # 对置信度筛选，而不是对类别筛选
         bboxes = bboxes[valid_inds]
         labels = labels[valid_inds]     # tensor([100])
         scores = scores[valid_inds]
@@ -206,13 +206,13 @@ class SORTTracker(BaseTracker):
                         self.tracks[id]['labels'][-1] for id in active_ids
                     ]).to(bboxes.device)
                     cate_match = labels[None, :] == track_labels[:, None]
-                    cate_cost = (1 - cate_match.int()) * 1e6            # 支撑多类别匹配，所以分类损失是 0 
+                    cate_cost = (1 - cate_match.int()) * 1e6            # 如果类别不同，则置为很大的值
                     reid_dists = (reid_dists + cate_cost).cpu().numpy() # reid_dists: [e-3,e-5] 区间内
 
                     valid_inds = [list(self.ids).index(_) for _ in active_ids]
-                    reid_dists[~np.isfinite(costs[valid_inds, :])] = np.nan
+                    reid_dists[~np.isfinite(costs[valid_inds, :])] = np.nan # 将马氏距离代价矩阵中的非法值删除
 
-                    row, col = linear_sum_assignment(reid_dists)
+                    row, col = linear_sum_assignment(reid_dists)    # 二分匹配
                     for r, c in zip(row, col):   # hungiran match
                         dist = reid_dists[r, c]
                         if not np.isfinite(dist):
@@ -234,10 +234,10 @@ class SORTTracker(BaseTracker):
                 track_labels = torch.tensor([
                     self.tracks[id]['labels'][-1] for id in active_ids
                 ]).to(bboxes.device)
-                cate_match = labels[None, active_dets] == track_labels[:, None]     # 为了满足多标签匹配，进行升维
-                cate_cost = (1 - cate_match.int()) * 1e6        # 分类 cost，都是 0，忽略了类别影响 [100,100]
+                cate_match = labels[None, active_dets] == track_labels[:, None]     # 匹配类别
+                cate_cost = (1 - cate_match.int()) * 1e6        # 
 
-                dists = (1 - ious + cate_cost).cpu().numpy()    # (100,100)
+                dists = (1 - ious + cate_cost).cpu().numpy()    # 距离矩阵
 
                 row, col = linear_sum_assignment(dists)         # (100,) (100,)
                 for r, c in zip(row, col):
