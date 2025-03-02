@@ -25,7 +25,11 @@ model = dict(
                 #cfg = dict(type='SEAttention', reduction=8)
                 # cfg = dict(type='ECAAttention', kernel_size=3),
                 # cfg = dict(type='MPE_ds',groups=4, reduction=8, use_fc=True, global_method="avg_max")
-                cfg = dict(type='APA',use_channel_attention=True)
+                cfg = dict(type='APA',
+                           use_channel_att=True,
+                           groups=2,
+                           use_global_spatial_att=True
+                           )
                 
                 #cfg = dict(type='ShuffleAttention', G=8)
                 #cfg = dict(type='SpatialGroupEnhance', groups=8)
@@ -92,7 +96,7 @@ param_scheduler = [
 # ))
 
 # train, val, test setting
-train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=6, val_interval=1)
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=12, val_interval=1)
 log_processor = dict(by_epoch=False)
 # train_cfg = dict(
 #     type='IterBasedTrainLoop',

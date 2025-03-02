@@ -153,59 +153,113 @@ class MPE(BaseModule):
 
         return out
 
+# class ChannelAttention(nn.Module):
+#     """Channel Attention Module similar to CBAM"""
+#     def __init__(self, in_channels, ratio=16):
+#         super(ChannelAttention, self).__init__()
+        
+#         # Define the two pooling operations: avg_pool and max_pool
+#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+#         self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+#         # Two fully connected layers for each pooled result
+#         self.fc1 = nn.Conv2d(in_channels, in_channels // ratio, 1, bias=False)
+#         self.fc2 = nn.Conv2d(in_channels // ratio, in_channels, 1, bias=False)
+
+#         self.relu = nn.ReLU(inplace=True)
+#         self.sigmoid = nn.Sigmoid()
+
+#     def forward(self, x):
+#         # Average pooling
+#         avg_out = self.avg_pool(x)
+#         avg_out = self.fc1(avg_out)
+#         avg_out = self.relu(avg_out)
+#         avg_out = self.fc2(avg_out)
+        
+#         # Max pooling
+#         max_out = self.max_pool(x)
+#         max_out = self.fc1(max_out)
+#         max_out = self.relu(max_out)
+#         max_out = self.fc2(max_out)
+        
+#         # Combine the results of avg and max pooling
+#         out = avg_out + max_out
+#         out = self.sigmoid(out)
+        
+#         # Channel attention: element-wise multiplication
+#         return x * out + x
+
+
 class ChannelAttention(nn.Module):
-    """Channel Attention Module similar to CBAM"""
+    """Optimized Channel Attention Module (CBAM-like)"""
     def __init__(self, in_channels, ratio=16):
         super(ChannelAttention, self).__init__()
         
-        # Define the two pooling operations: avg_pool and max_pool
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.max_pool = nn.AdaptiveMaxPool2d(1)
 
-        # Two fully connected layers for each pooled result
-        self.fc1 = nn.Conv2d(in_channels, in_channels // ratio, 1, bias=False)
-        self.fc2 = nn.Conv2d(in_channels // ratio, in_channels, 1, bias=False)
+        # Shared MLP for channel attention
+        self.mlp = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels // ratio, 1, bias=False),
+            nn.SiLU(),  # ReLU → SiLU
+            nn.Conv2d(in_channels // ratio, in_channels, 1, bias=False)
+        )
 
-        self.relu = nn.ReLU(inplace=True)
-        self.sigmoid = nn.Sigmoid()
+        # BatchNorm to replace Sigmoid for better stability
+        self.bn = nn.BatchNorm2d(in_channels)
 
     def forward(self, x):
-        # Average pooling
         avg_out = self.avg_pool(x)
-        avg_out = self.fc1(avg_out)
-        avg_out = self.relu(avg_out)
-        avg_out = self.fc2(avg_out)
-        
-        # Max pooling
         max_out = self.max_pool(x)
-        max_out = self.fc1(max_out)
-        max_out = self.relu(max_out)
-        max_out = self.fc2(max_out)
         
-        # Combine the results of avg and max pooling
-        out = avg_out + max_out
-        out = self.sigmoid(out)
+        # Concat and process through MLP
+        out = avg_out + max_out  # 可以直接加权求和
+        out = self.mlp(out)
         
-        # Channel attention: element-wise multiplication
-        return x * out
+        # Normalize
+        out = self.bn(out)
+
+        return x * out  # 不使用 Residual 连接
+
+# # 测试
+# x = torch.randn(1, 64, 32, 32)  # (batch, channels, height, width)
+# ca = ChannelAttention(64)
+# out = ca(x)
+# print(out.shape)  # 应该输出 torch.Size([1, 64, 32, 32])
+
 
 
 class APA(BaseModule):
 
-    def __init__(self, in_planes, kernel_size=3, ratio=16, groups=1, use_channel_attention=False) -> None:
+    def __init__(self,
+                 in_planes,
+                 kernel_size=3,
+                 ratio=16,
+                 groups=1,
+                 use_channel_att=False,
+                 use_global_spatial_att=True
+                 ) -> None:
         super().__init__()
         self.groups = groups
-        self.use_channel_attention = use_channel_attention  # 控制通道注意力的开关
+        self.use_channel_att = use_channel_att  # 控制通道注意力的开关
+        self.use_global_spatial_att = use_global_spatial_att    # 控制全局 spatial att 开关
         
         self.conv1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes,kernel_size=kernel_size,padding=1,groups=self.groups,stride=1)
-        self.fc1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes // ratio,kernel_size=3,padding=1)
-        self.fc2 = nn.Conv2d(in_channels=in_planes//ratio,out_channels=in_planes,kernel_size=3,padding=1)
+        self.fc1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes // ratio,kernel_size=1,padding=1)
+        self.fc2 = nn.Conv2d(in_channels=in_planes//ratio,out_channels=in_planes,kernel_size=1,padding=1)
         self.relu = torch.nn.ReLU()
         self.sigmoid = torch.nn.Sigmoid()
         self.gn =torch.nn.GroupNorm(num_groups=groups,num_channels=in_planes)
         
+        self.mlp = nn.Sequential(
+            nn.Conv2d(in_planes, in_planes // ratio, kernel_size=1, padding=0),
+            nn.SiLU(),  # SiLU 代替 ReLU，提高梯度稳定性
+            nn.Conv2d(in_planes // ratio, in_planes, kernel_size=1, padding=0),
+            nn.Sigmoid()  # 仍然保持 sigmoid 以归一化到 [0,1]
+        )
+        
         # 如果选择使用通道注意力，初始化通道注意力模块
-        if self.use_channel_attention:
+        if self.use_channel_att:
             self.channel_attention = ChannelAttention(in_planes, ratio)
     
     def channel_shuffle(self, x):
@@ -221,20 +275,24 @@ class APA(BaseModule):
     
     def forward(self,x):
         # 可选的通道注意力模块
-        if self.use_channel_attention:
+        if self.use_channel_att:
             x = self.channel_attention(x)
     
         # channel shuffle
         s_x = self.channel_shuffle(x)
-
+            
         # Local Alignment Module (LAM)
         spatial_attention = (self.gn(self.conv1(s_x)))
         
         # Global Alignment Module (GAM)
-        spatial_attention = self.fc1(spatial_attention)
-        spatial_attention = self.fc2(spatial_attention)
+        if self.use_global_spatial_att:
+            # spatial_attention = self.fc1(spatial_attention)
+            # spatial_attention = self.fc2(spatial_attention)
+            spatial_attention = self.mlp(spatial_attention)
+            
         spatial_attention = self.sigmoid(spatial_attention)
 
+        
         # element-wise product
         out = s_x * spatial_attention
 
