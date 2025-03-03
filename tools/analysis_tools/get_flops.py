@@ -91,9 +91,13 @@ def inference(args, logger):
             break
         data = model.data_preprocessor(data_batch)
         result['ori_shape'] = data['data_samples'][0].ori_shape
-        result['pad_shape'] = data['data_samples'][0].pad_shape
-        if hasattr(data['data_samples'][0], 'batch_input_shape'):
+        if hasattr(data['data_samples'][0], 'pad_shape'):
+            result['pad_shape'] = data['data_samples'][0].pad_shape
+        elif hasattr(data['data_samples'][0], 'batch_input_shape'):
             result['pad_shape'] = data['data_samples'][0].batch_input_shape
+        # result['pad_shape'] = data['data_samples'][0].pad_shape
+        # if hasattr(data['data_samples'][0], 'batch_input_shape'):
+        #     result['pad_shape'] = data['data_samples'][0].batch_input_shape
         model.forward = partial(_forward, data_samples=data['data_samples'])
         outputs = get_model_complexity_info(
             model,
@@ -120,7 +124,9 @@ def main():
     result = inference(args, logger)
     split_line = '=' * 30
     ori_shape = result['ori_shape']
-    pad_shape = result['pad_shape']
+    # pad_shape = result['pad_shape']
+    pad_shape = result.get('pad_shape', ori_shape)  # 如果 pad_shape 不存在，就用 ori_shape 代替
+
     flops = result['flops']
     params = result['params']
     compute_type = result['compute_type']

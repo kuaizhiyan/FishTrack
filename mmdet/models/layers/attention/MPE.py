@@ -245,8 +245,8 @@ class APA(BaseModule):
         self.use_global_spatial_att = use_global_spatial_att    # 控制全局 spatial att 开关
         
         self.conv1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes,kernel_size=kernel_size,padding=1,groups=self.groups,stride=1)
-        self.fc1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes // ratio,kernel_size=1,padding=1)
-        self.fc2 = nn.Conv2d(in_channels=in_planes//ratio,out_channels=in_planes,kernel_size=1,padding=1)
+        self.fc1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes // ratio,kernel_size=1,padding=0)
+        self.fc2 = nn.Conv2d(in_channels=in_planes//ratio,out_channels=in_planes,kernel_size=1,padding=0)
         self.relu = torch.nn.ReLU()
         self.sigmoid = torch.nn.Sigmoid()
         self.gn =torch.nn.GroupNorm(num_groups=groups,num_channels=in_planes)
@@ -274,12 +274,13 @@ class APA(BaseModule):
         return x
     
     def forward(self,x):
-        # 可选的通道注意力模块
-        if self.use_channel_att:
-            x = self.channel_attention(x)
     
         # channel shuffle
         s_x = self.channel_shuffle(x)
+        
+        # 可选的通道注意力模块
+        if self.use_channel_att:
+            x = self.channel_attention(x)
             
         # Local Alignment Module (LAM)
         spatial_attention = (self.gn(self.conv1(s_x)))
