@@ -20,17 +20,17 @@ model = dict(
             dict(
                 position='after_conv3',
                  stages=(False, True, True, True),
-                # cfg = dict(type='CBAMBlock',reduction=16,kernel_size=3)
+                cfg = dict(type='CBAMBlock',reduction=16,kernel_size=3)
                 # cfg = dict(type='BAMBlock', reduction=16, dia_val=1)
                 # cfg = dict(type='SEAttention', reduction=8)
                 # cfg = dict(type='ECAAttention', kernel_size=3),
                 # cfg = dict(type='MPE_ds',groups=4, reduction=8, use_fc=True, global_method="avg_max")
-                cfg = dict(type='APA',
-                           use_channel_sff=False,
-                           use_channel_att=True,
-                           groups=4,
-                           use_global_spatial_att=False
-                           )
+                # cfg = dict(type='APA',
+                #            use_channel_sff=True,
+                #            use_channel_att=True,
+                #            groups=2,
+                #            use_global_spatial_att=False
+                #            )
                 # cfg = dict(type='NonLocal2d')
             )
         ],
