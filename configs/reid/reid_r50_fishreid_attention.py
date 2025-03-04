@@ -26,9 +26,10 @@ model = dict(
                 # cfg = dict(type='ECAAttention', kernel_size=3),
                 # cfg = dict(type='MPE_ds',groups=4, reduction=8, use_fc=True, global_method="avg_max")
                 cfg = dict(type='APA',
+                           use_channel_sff=False,
                            use_channel_att=True,
                            groups=4,
-                           use_global_spatial_att=True
+                           use_global_spatial_att=False
                            )
                 # cfg = dict(type='NonLocal2d')
             )

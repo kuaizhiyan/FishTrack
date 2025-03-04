@@ -2,7 +2,7 @@ _base_ = [
     '../_base_/datasets/fish_track_reid.py', '../_base_/default_runtime.py'
 ]
 
-pretrained='/home/kzy/project/PartDecoder/mmdetection/work_dirs/reid_pmnet_2xb32_mot17train80_test-mot17val20/best_reid-metric_mAP_iter_3000.pth'
+pretrained='/home/kzy/project/PartDecoder/mmdetection/models/reid_gea_0.94.pth'
 model = dict(
     type='BaseReID',
     data_preprocessor=dict(
@@ -17,11 +17,11 @@ model = dict(
         out_indices=(1,2,3),
         style='pytorch',
         norm_eval=False,
-        # init_cfg=dict(
-        #     type='Pretrained',
-        #     checkpoint=pretrained,
-        #     prefix='backbone'
-        # )
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint=pretrained,
+            # prefix='backbone'
+        )
         ),
      neck=dict(
         type='PMNet',

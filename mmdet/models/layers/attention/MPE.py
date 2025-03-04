@@ -236,6 +236,7 @@ class APA(BaseModule):
                  kernel_size=3,
                  ratio=16,
                  groups=1,
+                 use_channel_sff=True,
                  use_channel_att=False,
                  use_global_spatial_att=True
                  ) -> None:
@@ -243,6 +244,7 @@ class APA(BaseModule):
         self.groups = groups
         self.use_channel_att = use_channel_att  # 控制通道注意力的开关
         self.use_global_spatial_att = use_global_spatial_att    # 控制全局 spatial att 开关
+        self.use_channel_sff = use_channel_sff
         
         self.conv1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes,kernel_size=kernel_size,padding=1,groups=self.groups,stride=1)
         self.fc1 = nn.Conv2d(in_channels=in_planes,out_channels=in_planes // ratio,kernel_size=1,padding=0)
@@ -252,9 +254,9 @@ class APA(BaseModule):
         self.gn =torch.nn.GroupNorm(num_groups=groups,num_channels=in_planes)
         
         self.mlp = nn.Sequential(
-            nn.Conv2d(in_planes, in_planes // ratio, kernel_size=1, padding=0),
+            nn.Conv2d(in_planes, in_planes // ratio, kernel_size=3, padding=1),
             nn.SiLU(),  # SiLU 代替 ReLU，提高梯度稳定性
-            nn.Conv2d(in_planes // ratio, in_planes, kernel_size=1, padding=0),
+            nn.Conv2d(in_planes // ratio, in_planes, kernel_size=3, padding=1),
             nn.Sigmoid()  # 仍然保持 sigmoid 以归一化到 [0,1]
         )
         
@@ -276,11 +278,14 @@ class APA(BaseModule):
     def forward(self,x):
     
         # channel shuffle
-        s_x = self.channel_shuffle(x)
+        if self.use_channel_sff:
+            s_x = self.channel_shuffle(x)
+        else:
+            s_x = x
         
         # 可选的通道注意力模块
         if self.use_channel_att:
-            x = self.channel_attention(x)
+            s_x = self.channel_attention(s_x)
             
         # Local Alignment Module (LAM)
         spatial_attention = (self.gn(self.conv1(s_x)))
