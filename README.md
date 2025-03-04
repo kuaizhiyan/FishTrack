@@ -158,7 +158,7 @@ python tracking_mmdeepsort.py "../tracking_demo/bdd_val_track" "configs/Groundin
 
 ### 2. 检测可视化
 
-官方教程：https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/inference.md
+官方教程：[绘制检测结果](https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/inference.md)
 
 可以使用 图片/图片路径
 
@@ -169,12 +169,12 @@ python demo/image_demo.py data/fish_track/train/fish2/img1/1.jpg \
 ```
 
 ### 4.3 跟踪结果可视化
-官方教程： https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/tracking_visualization.md
+官方教程： [link](https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/tracking_visualization.md)
 
 ### 跟踪视频可视化
 配置文件：./configs/deepsort/deepsort_yolox-s_100e_fishtrack.py
 
-官方教程：https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/tracking_interference.md
+官方教程：[link](https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/tracking_interference.md)
 
 测试命令：
 ```bash
@@ -185,6 +185,10 @@ python demo/mot_demo.py \
     /home/kzy/project/PartDecoder/mmdetection/work_dirs/yolox_s_8xb8-weizhoudao/best_coco_bbox_mAP_epoch_103.pth \
     --out work_dirs/mot4.mp4 --fps 20
 ```
+
+### 类激活图可视化
+
+mmpretrain 官方教程： [MMPretrain 类激活图可视化](https://mmpretrain.readthedocs.io/zh-cn/dev/useful_tools/cam_visualization.html)
 
 
 ## 脚本文件
