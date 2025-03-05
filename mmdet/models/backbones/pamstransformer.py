@@ -120,6 +120,7 @@ class PAMSTransformer(BaseModule):
                  embed_dims:int = 256,
                  decoder: OptConfigType = None,
                  positional_encoding: OptConfigType = None,
+                 use_multi_scale_encoding: bool = True,
                  num_queries: int = 129,
                  channel_mapper: OptConfigType = None,
                  encoder: OptConfigType = None,
@@ -134,6 +135,7 @@ class PAMSTransformer(BaseModule):
         # self.with_encoder = with_encoder
         self.encoder = encoder
         self.positional_encoding = positional_encoding  # cfg[embedding dimension]
+        self.use_multi_scale_encoding = use_multi_scale_encoding
         self.num_queries = num_queries
         self.embed_dims = embed_dims
         if channel_mapper is None:
@@ -149,10 +151,16 @@ class PAMSTransformer(BaseModule):
         """Initialize layers except for backbone, neck and bbox_head."""
         positional_encoding = []
         for idx in range(self.feature_layers):
-            positional_encoding.append(
-                SinePositionalEncoding(
-                    **self.positional_encoding,
-                    temperature=self.temperature*(1+self.alpha*idx)))
+            if self.use_multi_scale_encoding:
+                positional_encoding.append(
+                    SinePositionalEncoding(
+                        **self.positional_encoding,
+                        temperature=self.temperature*(1+self.alpha*idx)))
+            else:
+                positional_encoding.append(
+                    SinePositionalEncoding(
+                        **self.positional_encoding,
+                        temperature=self.temperature))
         self.positional_encoding = positional_encoding
             
         if self.encoder is not None:
@@ -208,7 +216,7 @@ class PAMSTransformer(BaseModule):
             # construct binary masks which for the transformer.    
             masks = None
             # [batch_size, embed_dim, h, w]
-            pos_embed = self.positional_encoding(masks, input=feat) 
+            pos_embed = self.positional_encoding[0](masks, input=feat) 
         
             # use `view` instead of `flatten` for dynamically exporting to ONNX
             # [bs, c, h, w] -> [bs, h*w, c]
@@ -400,6 +408,7 @@ class PMNet(BaseModule):
                  encoder: OptConfigType = None,
                  decoder: OptConfigType = None,
                  positional_encoding: OptConfigType = None,
+                 use_multi_scale_encoding: bool = True,
                  num_queries: int = 129,
                  channel_mapper:OptConfigType=None,
                  train_cfg: OptConfigType = None,
@@ -417,6 +426,7 @@ class PMNet(BaseModule):
                                     #    with_agg=with_agg,
                                        channel_mapper=channel_mapper,
                                        positional_encoding=positional_encoding,
+                                       use_multi_scale_encoding=use_multi_scale_encoding,
                                        num_queries=num_queries,
                                        train_cfg=train_cfg,
                                        test_cfg=test_cfg)

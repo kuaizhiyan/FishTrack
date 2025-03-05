@@ -83,9 +83,13 @@ python tools/train.py configs/reid/reid_r50_fishreid_dataaug.py
 
 配置文件： configs/reid/reid_r50_fishreid_attention.py
 
-模型文件：
+模型文件：fishtrack/model/MPE.py
 
 工作空间： /home/kzy/project/PartDecoder/mmdetection/work_dirs/reid_r50_fishreid_attention
+
+权重文件（本地）:
+
+权重文件：
 
 命令：
 ```bash
@@ -94,7 +98,22 @@ python tools/train.py configs/reid/reid_r50_fishreid_attention.py
 
 #### PMNet
 
+配置文件：configs/reid/reid_pmnet_fishreid.py
 
+模型文件：fishtrack/model/pamstransformer.py
+
+权重文件（本地）：/share/Lab_Datasets/kzy/models/3L_13q_2L_wemb_0.79mAP.pth
+
+权重文件：[Google Drive](https://drive.google.com/file/d/1Q8ESv9LDfjpbIKQb5lpIOQt_1cPIuP5T/view?usp=drive_link)
+
+
+### 3. 跟踪器（数据关联算法）
+
+模型文件：
+
+权重文件（全流程）（本地）：
+
+权重文件（全流程）：
 
 
 ## 三、 测试

@@ -1,0 +1,1 @@
+/home/kzy/project/PartDecoder/mmdetection/mmdet/models/backbones/pamstransformer.py

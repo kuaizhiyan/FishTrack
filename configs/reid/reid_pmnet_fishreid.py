@@ -14,7 +14,7 @@ model = dict(
         type='ResNet',
         depth=50,
         num_stages=4,
-        out_indices=(1,2,3),
+        out_indices=(3,),
         style='pytorch',
         norm_eval=False,
         init_cfg=dict(
@@ -25,17 +25,17 @@ model = dict(
         ),
      neck=dict(
         type='PMNet',
-            num_queries=129,
+            num_queries=13,
             embed_dims=256,
             channel_mapper=dict( 
-                in_channels=[512,1024,2048],   # the output feature map dim 512,1024,2048
+                in_channels=[ 2048],   # the output feature map dim 512,1024,2048
                 out_channels=256,
                 kernel_size=1,
                 norm_cfg=dict(type='BN'),
                 act_cfg=dict(type='LeakyReLU')
                 ),
             encoder=dict(  
-                num_layers=4,
+                num_layers=2,
                 layer_cfg=dict(  
                     self_attn_cfg=dict(  # MultiheadAttention
                         embed_dims=256,
@@ -44,12 +44,12 @@ model = dict(
                         batch_first=True),
                     ffn_cfg=dict(
                         embed_dims=256,
-                        feedforward_channels=2048,
+                        feedforward_channels=1024,  # 原始：2048
                         num_fcs=2,
                         ffn_drop=0.1,
                         act_cfg=dict(type='ReLU', inplace=True)))),
             decoder=dict(
-                num_layers=4,
+                num_layers=2,
                 layer_cfg=dict(
                     self_attn_cfg=dict(
                         embed_dims=256,
@@ -63,12 +63,13 @@ model = dict(
                         cross_attn=True),
                     ffn_cfg=dict(
                         embed_dims=256,
-                        feedforward_channels=2048,
+                        feedforward_channels=1024,  # 原始：2048
                         num_fcs=2,
                         ffn_drop=0.1,
                         act_cfg=dict(type='ReLU', inplace=True)))
             ),
             positional_encoding=dict(num_feats=128, normalize=True),    # num_feats = len(x)+len(y)
+            use_multi_scale_encoding=True,
         # init_cfg=dict(
         #     type='Pretrained',
         #     checkpoint=pretrained,
@@ -79,7 +80,7 @@ model = dict(
         type='LinearReIDHead',
         num_fcs=1,
         in_channels=256,
-        fc_channels=1024,
+        fc_channels=512,   # 原始: 1024
         out_channels=256,
         num_classes=81,            # MOT20: 477 FishReID: 81
         loss_cls=dict(type='mmpretrain.CrossEntropyLoss', loss_weight=1.0),
@@ -97,7 +98,7 @@ model = dict(
 optim_wrapper = dict(
     type='OptimWrapper',
     clip_grad=None,
-    optimizer=dict(type='SGD', lr=0.1, momentum=0.9, weight_decay=0.0001))
+    optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0001))
 
 # learning policy
 param_scheduler = [
