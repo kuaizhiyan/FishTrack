@@ -201,8 +201,15 @@ AttributeError: 'ConfigDict' object has no attribute 'visualizer'
 
 ```bash
 python demo/image_demo.py data/fish_track/train/fish2/img1/1.jpg \
-    /home/kzy/project/PartDecoder/mmdetection/configs/yolox/yolox_s_8xb8-weizhoudao.py \
-    --weights /home/kzy/project/PartDecoder/mmdetection/checkpoints/best_weizhoudao_coco_bbox_mAP_epoch_103.pth 
+    configs/yolox/yolox_s_8xb8-weizhoudao.py \
+    --weights models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth 
+```
+
+```bash
+python demo/image_demo.py data/fish_track/train/fish2/img1/  \   
+configs/yolox/yolox_s_8xb8-weizhoudao.py    \
+ --weights models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth  \
+ --out-dir /share/Lab_Datasets/kzy/track_detection_vis/fish2
 ```
 
 ### 4. 跟踪结果可视化
