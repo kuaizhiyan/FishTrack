@@ -1,5 +1,0 @@
-# owners.yml 示例
-owners:
-  - path: '*'
-    owners:
-      - 'kuaizhiyan'
