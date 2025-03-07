@@ -127,8 +127,11 @@ test_evaluator = val_evaluator
 #     format_only=True,
 #     ann_file=data_root + 'annotations/image_info_test-dev2017.json',
 # #     outfile_prefix='./work_dirs/coco_detection/test')
-# vis_backends = [dict(type='LocalVisBackend')]
-# visualizer = dict(
-#     type='DetLocalVisualizer',
-#     vis_backends=vis_backends,
-#     name='visualizer')
+
+
+# 可视化数据集需要解开注释
+vis_backends = [dict(type='LocalVisBackend')]
+visualizer = dict(
+    type='DetLocalVisualizer',
+    vis_backends=vis_backends,
+    name='visualizer')

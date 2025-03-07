@@ -1,6 +1,8 @@
 _base_ = [
     '../_base_/datasets/fish_track_reid.py', '../_base_/default_runtime.py'
 ]
+
+pretrained='/home/kzy/project/PartDecoder/mmdetection/models/reid_gea_0.94.pth'
 model = dict(
     type='BaseReID',
     data_preprocessor=dict(
@@ -12,56 +14,91 @@ model = dict(
         type='ResNet',
         depth=50,
         num_stages=4,
-        out_indices=(3, ),
+        out_indices=(3,),
         style='pytorch',
         norm_eval=False,
-        # pretrained='torchvision://resnet50'
-        plugins = [
-            dict(
-                position='after_conv3',
-                 stages=(False, True, True, True),
-                cfg = dict(type='CBAMBlock',reduction=16,kernel_size=3)
-                # cfg = dict(type='BAMBlock', reduction=16, dia_val=1)
-                # cfg = dict(type='SEAttention', reduction=8)
-                # cfg = dict(type='ECAAttention', kernel_size=3),
-                # cfg = dict(type='MPE_ds',groups=4, reduction=8, use_fc=True, global_method="avg_max")
-                # cfg = dict(type='APA',
-                #            use_channel_sff=True,
-                #            use_channel_att=True,
-                #            groups=2,
-                #            use_global_spatial_att=False
-                #            )
-                # cfg = dict(type='NonLocal2d')
-            )
-        ],
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint=pretrained,
+            # prefix='backbone'
+        )
+        ),
+     neck=dict(
+        type='PMNet',
+            num_queries=13,
+            embed_dims=256,
+            channel_mapper=dict( 
+                in_channels=[ 2048],   # the output feature map dim 512,1024,2048
+                out_channels=256,
+                kernel_size=1,
+                norm_cfg=dict(type='BN'),
+                act_cfg=dict(type='LeakyReLU')
+                ),
+            encoder=dict(  
+                num_layers=2,
+                layer_cfg=dict(  
+                    self_attn_cfg=dict(  # MultiheadAttention
+                        embed_dims=256,
+                        num_heads=8,
+                        dropout=0.1,
+                        batch_first=True),
+                    ffn_cfg=dict(
+                        embed_dims=256,
+                        feedforward_channels=1024,  # 原始：2048
+                        num_fcs=2,
+                        ffn_drop=0.1,
+                        act_cfg=dict(type='ReLU', inplace=True)))),
+            decoder=dict(
+                num_layers=2,
+                layer_cfg=dict(
+                    self_attn_cfg=dict(
+                        embed_dims=256,
+                        num_heads=8,
+                        attn_drop=0.1,
+                        cross_attn=False),
+                    cross_attn_cfg=dict(
+                        embed_dims=256,
+                        num_heads=8,
+                        attn_drop=0.1,
+                        cross_attn=True),
+                    ffn_cfg=dict(
+                        embed_dims=256,
+                        feedforward_channels=1024,  # 原始：2048
+                        num_fcs=2,
+                        ffn_drop=0.1,
+                        act_cfg=dict(type='ReLU', inplace=True)))
+            ),
+            positional_encoding=dict(num_feats=128, normalize=True),    # num_feats = len(x)+len(y)
+            use_multi_scale_encoding=True,
         # init_cfg=dict(
         #     type='Pretrained',
-        # )
-        ),
-    neck=dict(type='GlobalAveragePooling', kernel_size=(4, 8), stride=1),
+        #     checkpoint=pretrained,
+        #     prefix='neck'
+        # ),
+    ),
     head=dict(
         type='LinearReIDHead',
         num_fcs=1,
-        in_channels=2048,
-        fc_channels=1024,
-        out_channels=128,
-        num_classes=81,        # train cls < 80
+        in_channels=256,
+        fc_channels=512,   # 原始: 1024
+        out_channels=256,
+        num_classes=81,            # MOT20: 477 FishReID: 81
         loss_cls=dict(type='mmpretrain.CrossEntropyLoss', loss_weight=1.0),
-        loss_triplet=dict(ty pe='TripletLoss', margin=0.3, loss_weight=1.0),
+        loss_triplet=dict(type='TripletLoss', margin=0.3, loss_weight=1.0),
         norm_cfg=dict(type='BN1d'),
         act_cfg=dict(type='ReLU')),
     # init_cfg=dict(
     #     type='Pretrained',
-    #     checkpoint=  # noqa: E251
-    #     '/home/kzy/project/PartDecoder/mmdetection/work_dirs/reid_r50_fishreid_dataaug/gridmask.pth'  # noqa: E501
+    #     checkpoint=pretrained,
     # )
     )
+
 
 # optimizer
 optim_wrapper = dict(
     type='OptimWrapper',
     clip_grad=None,
-    optimizer=dict(type='SGD', lr=0.1, momentum=0.9, weight_decay=0.0001))
+    optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0001))
 
 # learning policy
 param_scheduler = [
@@ -128,7 +165,3 @@ train_pipeline = [
 default_hooks = dict(
     checkpoint=dict(type='CheckpointHook', interval=1,save_best='auto'),
 )
-
-# custom_hooks = [
-#     # dict(type='CheckGradientsHook',interval=500,log_gradients=True)
-# ]

@@ -2,7 +2,7 @@ _base_ = [
     '../_base_/datasets/fish_track_reid.py', '../_base_/default_runtime.py'
 ]
 
-pretrained='/home/kzy/project/PartDecoder/mmdetection/models/reid_gea_0.94.pth'
+pretrained='/share/Lab_Datasets/kzy/models/3L_13q_2L_wemb_0.79mAP.pth'
 model = dict(
     type='BaseReID',
     data_preprocessor=dict(
@@ -17,15 +17,30 @@ model = dict(
         out_indices=(3,),
         style='pytorch',
         norm_eval=False,
-        init_cfg=dict(
-            type='Pretrained',
-            checkpoint=pretrained,
-            # prefix='backbone'
-        )
+        plugins=[
+            dict(
+                position='after_conv3',
+                stages=(False, True, True, True),
+                cfg=dict(type='APA',
+                           use_channel_sff=False,
+                           use_channel_att=True,
+                           groups=4,
+                           use_global_spatial_att=True
+                           )
+                # cfg = dict(type='ECAAttention', kernel_size=3),
+                # cfg = dict(type='NonLocal2d')
+                )
+
+        ],
+        # init_cfg=dict(
+        #     type='Pretrained',
+        #     checkpoint=pretrained,
+        #     prefix='backbone'
+        # )
         ),
      neck=dict(
         type='PMNet',
-            num_queries=13,
+            num_queries=16,
             embed_dims=256,
             channel_mapper=dict( 
                 in_channels=[ 2048],   # the output feature map dim 512,1024,2048
@@ -35,7 +50,7 @@ model = dict(
                 act_cfg=dict(type='LeakyReLU')
                 ),
             encoder=dict(  
-                num_layers=2,
+                num_layers=4,
                 layer_cfg=dict(  
                     self_attn_cfg=dict(  # MultiheadAttention
                         embed_dims=256,
@@ -49,7 +64,7 @@ model = dict(
                         ffn_drop=0.1,
                         act_cfg=dict(type='ReLU', inplace=True)))),
             decoder=dict(
-                num_layers=2,
+                num_layers=4,
                 layer_cfg=dict(
                     self_attn_cfg=dict(
                         embed_dims=256,
@@ -153,7 +168,7 @@ train_pipeline = [
                 keep_ratio=False,
                 clip_object_border=False),
             # dict(type='RandomFlip', prob=0.5, direction='horizontal'),
-            # dict(type='MMGEA',probability=0.7,scalar=15,sl=0.3,sh=0.7),
+            dict(type='MMGEA',probability=0.1,scalar=15,sl=0.3,sh=0.7,thetah=30,rl=0.5),
             # dict(type='CutOut', n_holes=2, cutout_shape=[(32, 32), (64, 64)], fill_value=128), 
             # dict(type='GridMask')
             # dict(type='HideAndSeek')

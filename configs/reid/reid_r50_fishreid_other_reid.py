@@ -9,31 +9,13 @@ model = dict(
         std=[58.395, 57.12, 57.375],
         to_rgb=True),
     backbone=dict(
-        type='ResNet',
+        type='ResNeSt',
         depth=50,
         num_stages=4,
         out_indices=(3, ),
         style='pytorch',
         norm_eval=False,
         # pretrained='torchvision://resnet50'
-        plugins = [
-            dict(
-                position='after_conv3',
-                 stages=(False, True, True, True),
-                cfg = dict(type='CBAMBlock',reduction=16,kernel_size=3)
-                # cfg = dict(type='BAMBlock', reduction=16, dia_val=1)
-                # cfg = dict(type='SEAttention', reduction=8)
-                # cfg = dict(type='ECAAttention', kernel_size=3),
-                # cfg = dict(type='MPE_ds',groups=4, reduction=8, use_fc=True, global_method="avg_max")
-                # cfg = dict(type='APA',
-                #            use_channel_sff=True,
-                #            use_channel_att=True,
-                #            groups=2,
-                #            use_global_spatial_att=False
-                #            )
-                # cfg = dict(type='NonLocal2d')
-            )
-        ],
         # init_cfg=dict(
         #     type='Pretrained',
         # )
@@ -47,7 +29,7 @@ model = dict(
         out_channels=128,
         num_classes=81,        # train cls < 80
         loss_cls=dict(type='mmpretrain.CrossEntropyLoss', loss_weight=1.0),
-        loss_triplet=dict(ty pe='TripletLoss', margin=0.3, loss_weight=1.0),
+        loss_triplet=dict(type='TripletLoss', margin=0.3, loss_weight=1.0),
         norm_cfg=dict(type='BN1d'),
         act_cfg=dict(type='ReLU')),
     # init_cfg=dict(
@@ -61,7 +43,7 @@ model = dict(
 optim_wrapper = dict(
     type='OptimWrapper',
     clip_grad=None,
-    optimizer=dict(type='SGD', lr=0.1, momentum=0.9, weight_decay=0.0001))
+    optimizer=dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0001))
 
 # learning policy
 param_scheduler = [
@@ -115,12 +97,6 @@ train_pipeline = [
                 scale=(256, 128),
                 keep_ratio=False,
                 clip_object_border=False),
-            # dict(type='RandomFlip', prob=0.5, direction='horizontal'),
-            # dict(type='MMGEA',probability=0.7,scalar=15,sl=0.3,sh=0.7),
-            # dict(type='CutOut', n_holes=2, cutout_shape=[(32, 32), (64, 64)], fill_value=128), 
-            # dict(type='GridMask')
-            # dict(type='HideAndSeek')
-            # dict(type='RandomErasing',n_patches=1,ratio=(0.3,0.5))
         ]),
     dict(type='PackReIDInputs', meta_keys=('flip', 'flip_direction'))
 ]
@@ -128,7 +104,3 @@ train_pipeline = [
 default_hooks = dict(
     checkpoint=dict(type='CheckpointHook', interval=1,save_best='auto'),
 )
-
-# custom_hooks = [
-#     # dict(type='CheckGradientsHook',interval=500,log_gradients=True)
-# ]
