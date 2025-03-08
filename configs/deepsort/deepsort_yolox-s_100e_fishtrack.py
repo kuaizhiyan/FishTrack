@@ -83,8 +83,8 @@ model = dict(
             num_samples=10,
             img_scale=(256, 128),
             img_norm_cfg=None,
-            match_score_thr=2.0),
-        match_iou_thr=0.3,
+            match_score_thr=1.0),       # 2.0
+        match_iou_thr=0.2,              # 0.3
         momentums=None,
         num_tentatives=2,
         num_frames_retain=100))
@@ -132,5 +132,5 @@ test_evaluator = dict(
     postprocess_tracklet_cfg=[
         dict(type='InterpolateTracklets', min_num_frames=5, max_num_frames=20)
     ],
-    format_only=True,
+    format_only=False,
     outfile_prefix='./work_dirs/deepsort_yolox-s_fishtrack_test_2281335')

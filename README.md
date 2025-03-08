@@ -177,7 +177,8 @@ python tracking_mmdeepsort.py "../tracking_demo/bdd_val_track" "configs/Groundin
 命令：
 ```bash
 python tools/analysis_tools/browse_dataset.py \
-    configs/_base_/datasets/weizhoudao_detection.py
+    configs/_base_/datasets/weizhoudao_detection.py \
+    --output-dir ./work_dirs/dataset_vis
 ```
 
 ps: 若报错：
@@ -185,7 +186,14 @@ ps: 若报错：
 AttributeError: 'ConfigDict' object has no attribute 'visualizer'
 ```
 
-请将`configs/_base_/datasets/weizhoudao_detection.py` 配置文件中最下方的 `vis_backends` `visualizer` 注释解除。注意其他配置文件继承此数据集配置文件时，`visualizer` 的冲突问题，根据具体任务注释掉或覆盖。
+请将`configs/_base_/datasets/weizhoudao_detection.py` 配置文件中最下方的 `vis_backends` `visualizer` 注释解除。
+
+注意其他配置文件继承此数据集配置文件时，`visualizer` 的冲突问题，根据具体任务注释掉或覆盖。
+
+报错示例:
+```bash
+KeyError: "Duplicate key is not allowed among bases. Duplicate keys: {'visualizer', 'vis_backends'}"
+```
 
 
 ### 2. 训练过程可视化
