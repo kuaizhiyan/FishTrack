@@ -35,7 +35,7 @@ detector.bbox_head.update(dict(num_classes=1))
 detector['init_cfg'] = dict(
     type='Pretrained',
     checkpoint=  # noqa: E251
-    '/home/kzy/project/PartDecoder/mmdetection/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth'
+    'models/best_fishtrack_coco_bbox_mAP_epoch_5.pth'
     )
 del _base_.model
 

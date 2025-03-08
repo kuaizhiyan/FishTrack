@@ -58,7 +58,7 @@ model = dict(
             num_stages=4,
             out_indices=(3, ),
             style='pytorch'),
-        neck=dict(type='GlobalAveragePooling', kernel_size=(4, 8), stride=1),
+        neck=dict(type='GlobalAveragePooling', kernel_size=(8, 4), stride=1),
         head=dict(
             type='LinearReIDHead',
             num_fcs=1,
@@ -79,13 +79,13 @@ model = dict(
     tracker=dict(
         type='SORTTracker',
         motion=dict(type='KalmanFilter', center_only=False),
-        obj_score_thr=0.5,
+        obj_score_thr=0.2,
         reid=dict(
             num_samples=10,
             img_scale=(256, 128),
             img_norm_cfg=None,
             match_score_thr=2.0),
-        match_iou_thr=0.5,
+        match_iou_thr=0.3,
         momentums=None,
         num_tentatives=2,
         num_frames_retain=100))

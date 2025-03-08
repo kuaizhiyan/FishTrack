@@ -68,8 +68,8 @@ model = dict(
         )),
     tracker=dict(
         type='SORTTracker',
-        motion=dict(type='KalmanFilter', center_only=False),
-        obj_score_thr=0.5,
+        motion=dict(type='KalmanFilter', center_only=True),
+        obj_score_thr=0.2,
         reid=dict(
             num_samples=10,
             img_scale=(256, 128),

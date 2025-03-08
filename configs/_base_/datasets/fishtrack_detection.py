@@ -63,7 +63,7 @@ val_dataloader = dict(
         data_root=data_root,
         metainfo=dict(classes=classes),
         ann_file='annotations/fishtrack_coco.json',
-        # data_prefix=dict(img='/'),
+        data_prefix=dict(img='./'),
         test_mode=True,
         pipeline=test_pipeline,
         backend_args=backend_args))
