@@ -101,7 +101,7 @@ def main(args):
             if in_video or out_video:
                 out_file = osp.join(out_path, f'{i:06d}.jpg')
             else:
-                out_file = osp.join(out_path, img.rsplit(os.sep, 1)[-1])
+                out_file = osp.join(out_path, imgs[i].rsplit(os.sep, 1)[-1])
         else:
             out_file = None
 

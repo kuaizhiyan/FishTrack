@@ -79,7 +79,7 @@ model = dict(
     tracker=dict(
         type='SORTTracker',
         motion=dict(type='KalmanFilter', center_only=True),
-        obj_score_thr=0.7,
+        obj_score_thr=0.7,      # 0.2 会目标太多 OOM
         reid=dict(
             num_samples=5,
             img_scale=(256, 128),
