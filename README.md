@@ -228,13 +228,20 @@ configs/yolox/yolox_s_8xb8-fishtrack_detection.py --weights models/best_fishtrac
 官方教程：[link](https://github.com/open-mmlab/mmdetection/blob/main/docs/zh_cn/user_guides/tracking_interference.md)
 
 测试命令：
+
+生成视频
 ```bash
 python demo/mot_demo.py \
     data/fish_track/train/fish2/img1 \
     configs/deepsort/deepsort_yolox-s_100e_fishtrack.py \
     --detector \
-    /home/kzy/project/PartDecoder/mmdetection/work_dirs/yolox_s_8xb8-weizhoudao/best_coco_bbox_mAP_epoch_103.pth \
-    --out work_dirs/mot4.mp4 --fps 20
+    models/best_fishtrackcoco_bbox_mAP_epoch_30.pthyolox_s_8xb8-weizhoudao/best_coco_bbox_mAP_epoch_103.pth \
+    --out work_dirs/fish2.mp4 --fps 20
+```
+生成文件夹
+```bash
+python demo/mot_demo.py data/fish_track/train/fish1/img1/ configs/deepsort/deepsort_yolox-s_dataaug.py --detector models/be
+st_fishtrackcoco_bbox_mAP_epoch_30.pth --out fish1/
 ```
 
 ### 6. 类激活图可视化

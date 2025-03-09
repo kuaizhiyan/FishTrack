@@ -78,17 +78,17 @@ model = dict(
         ),
     tracker=dict(
         type='SORTTracker',
-        motion=dict(type='KalmanFilter', center_only=False),
+        motion=dict(type='KalmanFilter', center_only=True),
         obj_score_thr=0.7,
         reid=dict(
-            num_samples=10,
+            num_samples=5,
             img_scale=(256, 128),
             img_norm_cfg=None,
             match_score_thr=2.0),
-        match_iou_thr=0.3,
+        match_iou_thr=0.5,
         momentums=None,
         num_tentatives=2,
-        num_frames_retain=50)) # 100
+        num_frames_retain=100)) # 100
 
 train_dataloader = None
 train_pipeline = None
@@ -134,5 +134,5 @@ test_evaluator = dict(
         dict(type='InterpolateTracklets', min_num_frames=5, max_num_frames=20)
     ],
     format_only=False,
-    outfile_prefix='./work_dirs/tracker_test_03092043'
+    outfile_prefix='./work_dirs/tracker_test_03092208'
     )
