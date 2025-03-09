@@ -214,10 +214,9 @@ python demo/image_demo.py data/fish_track/train/fish2/img1/1.jpg \
 ```
 
 ```bash
-python demo/image_demo.py data/fish_track/train/fish2/img1/  \   
-configs/yolox/yolox_s_8xb8-weizhoudao.py    \
- --weights models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth  \
- --out-dir /share/Lab_Datasets/kzy/track_detection_vis/fish2
+python demo/image_demo.py data/fish_track/train/fish2/img1/ \
+configs/yolox/yolox_s_8xb8-fishtrack_detection.py --weights models/best_fishtrackcoco_bbox_mAP_epoch_30.pth \ 
+--out-dir /share/Lab_Datasets/kzy/track_detection_vis/fish2/
 ```
 
 ### 4. 跟踪结果可视化

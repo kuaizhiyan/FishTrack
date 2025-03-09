@@ -12,7 +12,7 @@ classes = (
 # model settings
 model = _base_.model
 model['init_cfg'] = dict(type='Pretrained',
-                         checkpoint='models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth')
+                         checkpoint='models/yolox_s_8x8_300e_coco_20211121_095711-4592a793.pth')
 model.bbox_head.num_classes=1
 
 # dataset settings
@@ -126,8 +126,8 @@ val_evaluator = dict(
 test_evaluator = val_evaluator
 
 # training settings
-max_epochs = 5
-num_last_epochs = 2
+max_epochs = 30
+num_last_epochs = 5
 interval = 1
 
 train_cfg = dict(max_epochs=max_epochs, val_interval=interval)
@@ -151,13 +151,13 @@ param_scheduler = [
         type='mmdet.QuadraticWarmupLR',
         by_epoch=True,
         begin=0,
-        end=1,
+        end=5,
         convert_to_iter_based=True),
     dict(
         # use cosine lr from 5 to 285 epoch
         type='CosineAnnealingLR',
         eta_min=base_lr * 0.05,
-        begin=1,
+        begin=5,
         T_max=max_epochs - num_last_epochs,
         end=max_epochs - num_last_epochs,
         by_epoch=True,

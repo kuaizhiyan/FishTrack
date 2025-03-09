@@ -140,6 +140,10 @@ class InterpolateTracklets:
             ndarray: The interpolated tracks with shape (N, 7). Each row
             denotes (frame_id, track_id, x1, y1, x2, y2, score).
         """
+        if len(pred_tracks) == 0:
+            # 如果输入轨迹为空，直接返回空数组
+            return np.array([])
+        
         max_track_id = int(np.max(pred_tracks[:, 1]))
         min_track_id = int(np.min(pred_tracks[:, 1]))
 
@@ -164,5 +168,9 @@ class InterpolateTracklets:
 
             interpolated_tracks.append(interpolated_track)
 
+         # 检查 interpolated_tracks 是否为空
+        if len(interpolated_tracks) == 0:
+            return np.array([])
+        
         interpolated_tracks = np.concatenate(interpolated_tracks)
         return interpolated_tracks[interpolated_tracks[:, 0].argsort()]

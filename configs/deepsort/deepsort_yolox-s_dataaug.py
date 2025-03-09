@@ -35,7 +35,7 @@ detector.bbox_head.update(dict(num_classes=1))
 detector['init_cfg'] = dict(
     type='Pretrained',
     checkpoint=  # noqa: E251
-    '/home/kzy/project/PartDecoder/mmdetection/models/best_weizhoudao_coco_bbox_mAP_epoch_103.pth'
+    'models/best_fishtrackcoco_bbox_mAP_epoch_30.pth'
     )
 del _base_.model
 
@@ -79,7 +79,7 @@ model = dict(
     tracker=dict(
         type='SORTTracker',
         motion=dict(type='KalmanFilter', center_only=False),
-        obj_score_thr=0.2,
+        obj_score_thr=0.7,
         reid=dict(
             num_samples=10,
             img_scale=(256, 128),
@@ -88,7 +88,7 @@ model = dict(
         match_iou_thr=0.3,
         momentums=None,
         num_tentatives=2,
-        num_frames_retain=100))
+        num_frames_retain=50)) # 100
 
 train_dataloader = None
 train_pipeline = None
@@ -134,5 +134,5 @@ test_evaluator = dict(
         dict(type='InterpolateTracklets', min_num_frames=5, max_num_frames=20)
     ],
     format_only=False,
-    # outfile_prefix='./work_dirs/deepsort_yolox-s_fishtrack_test1'
+    outfile_prefix='./work_dirs/tracker_test_03092043'
     )
