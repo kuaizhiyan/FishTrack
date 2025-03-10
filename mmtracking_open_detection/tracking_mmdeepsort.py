@@ -473,12 +473,16 @@ def main():
                 image_new = img
 
         pred_instances = run_detector(det_model, image_new, args, label_name) # {boxes[325,4]原图尺寸,labels[325],scores[325]} ,给出的还是对应的下标，只不过标签可以手动输入
-
+        print('###############')
+        print('image_new type:',type(image_new))
+        
         # track input
         img_data_sample = DetDataSample()                           # 构造 DetDataSample()
         img_data_sample.pred_instances = pred_instances
         img_data_sample.set_metainfo(dict(frame_id=frame_id,img_shape=(image_new.height,image_new.width)))       # 所以，只要使用检测器给出检测结果，送到 Tracker 里面就好了
-
+        print('#'*10)
+        print('image_new type:',type(image_new))
+        
         # track
         img_track,_ = sort_transform(image_new, None)
         img_track = img_track.unsqueeze(0)                                #  'The img must be 5D Tensor (N, T, C, H, W).'  # [1,1,3,640,1088]，只是tensor 之后的

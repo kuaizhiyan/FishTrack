@@ -309,18 +309,18 @@ def main():
                  please install it follow README')
     args = parse_args()
 
-    if 'glip' in args.det_config:
-        if maskrcnn_benchmark is None:
-            raise RuntimeError('GLIP model is not installed,\
-                 please install it follow README')
-    elif 'GroundingDINO' in args.det_config:
-        if groundingdino is None:
-            raise RuntimeError('GroundingDINO model is not installed,\
-                 please install it follow README')
-    elif args.mots:
-        if segment_anything is None:
-            raise RuntimeError('SAM model is not installed,\
-                 please install it follow README')
+    # if 'glip' in args.det_config:
+    #     if maskrcnn_benchmark is None:
+    #         raise RuntimeError('GLIP model is not installed,\
+    #              please install it follow README')
+    # elif 'GroundingDINO' in args.det_config:
+    #     if groundingdino is None:
+    #         raise RuntimeError('GroundingDINO model is not installed,\
+    #              please install it follow README')
+    # elif args.mots:
+    #     if segment_anything is None:
+    #         raise RuntimeError('SAM model is not installed,\
+    #              please install it follow README')
 
     if args.cpu_off_load is True:
         if 'cpu' in args.det_device and 'cpu ' in args.sam_device:
@@ -328,10 +328,11 @@ def main():
                 'args.cpu_off_load is an invalid parameter due to '
                 'detection and mask model IS on the cpu.')
 
-    if 'GroundingDINO' in args.det_config or 'glip' in args.det_config or \
-       'Detic' in args.det_config:
-        assert args.text_prompt
+    # if 'GroundingDINO' in args.det_config or 'glip' in args.det_config or \
+    #    'Detic' in args.det_config:
+    #     assert args.text_prompt
 
+    # define output
     out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
 
@@ -363,40 +364,39 @@ def main():
         fps = int(fps)
 
     # text_prompt
-    text_prompt = args.text_prompt
-    text_prompt = text_prompt.lower()
-    text_prompt = text_prompt.strip()
-    if not text_prompt.endswith('.'):
-        text_prompt = text_prompt + '.'
-    args.text_prompt = text_prompt
+    # text_prompt = args.text_prompt
+    # text_prompt = text_prompt.lower()
+    # text_prompt = text_prompt.strip()
+    # if not text_prompt.endswith('.'):
+    #     text_prompt = text_prompt + '.'
+    # args.text_prompt = text_prompt
 
-    # custom label name
-    custom_vocabulary = text_prompt[:-1].split('.')
-    label_name = [c.strip() for c in custom_vocabulary]
+    # # custom label name
+    # custom_vocabulary = text_prompt[:-1].split('.')
+    # label_name = [c.strip() for c in custom_vocabulary]
     
-    # custom label name
-    custom_vocabulary = text_prompt[:-1].split('.')
-    label_name = [c.strip() for c in custom_vocabulary]
+    # # custom label name
+    # custom_vocabulary = text_prompt[:-1].split('.')
+    # label_name = [c.strip() for c in custom_vocabulary]
     
 
     # visulization
+    label_name = 'fish'
     visualizer = TrackLocalVisualizer()
     visualizer.dataset_meta = {'classes': label_name}
 
     # det model
-    det_model = build_detecter(args)
+    # det_model = build_detecter(args)
+    cfg = Config.fromfile(args.tracker_path)
+    det_model = init_detector(
+            cfg.detector, args.det_weight, device='gpu', cfg_options={})
+    # det_model = MODELS.build(det_cfg.model)
+    det_model.eval()
 
     # deepsort model
-    cfg = Config.fromfile(args.tracker_path)
     sort_model = MODELS.build(cfg.model)
     sort_model.eval()
 
-    # sam model
-    if args.mots:
-        build_sam = sam_model_registry[args.sam_type]
-        sam_model = SamPredictor(build_sam(checkpoint=args.sam_weight))
-        if not args.cpu_off_load:
-            sam_model.mode = sam_model.model.to(args.sam_device)
 
     # tracker  创建跟踪器
     # tracker = ByteTracker(
@@ -416,12 +416,6 @@ def main():
         else:
             det_model = det_model.to(args.det_device)
 
-    if 'Detic' in args.det_config:
-        from projects.Detic.detic.utils import (get_text_embeddings,
-                                                reset_cls_layer_weight)
-        det_model.dataset_meta['classes'] = label_name
-        embedding = get_text_embeddings(custom_vocabulary=custom_vocabulary)
-        reset_cls_layer_weight(det_model, embedding)
 
     # 保存跟踪结果
     track_results = []
@@ -449,6 +443,7 @@ def main():
         # track input
         img_data_sample = DetDataSample()                           # 构造 DetDataSample()
         img_data_sample.pred_instances = pred_instances
+        print('image_new type:',type(image_new))
         img_data_sample.set_metainfo(dict(frame_id=frame_id,img_shape=(image_new.height,image_new.width)))       # 所以，只要使用检测器给出检测结果，送到 Tracker 里面就好了
 
         # track
@@ -474,31 +469,6 @@ def main():
             vis_image = np.asarray(image_new)
         else:
             vis_image = image_new[..., ::-1]
-
-        if args.mots:       # False
-            if args.cpu_off_load:
-                sam_model.mode = sam_model.model.to(args.sam_device)
-            if isinstance(img, str):
-                image = cv2.imread(image_path)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            else:
-                image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-            sam_model.set_image(image)
-
-            transformed_boxes = sam_model.transform.apply_boxes_torch(
-                pred_track_instances.bboxes, image.shape[:2])
-            transformed_boxes = transformed_boxes.to(sam_model.model.device)
-
-            masks, _, _ = sam_model.predict_torch(
-                point_coords=None,
-                point_labels=None,
-                boxes=transformed_boxes,
-                multimask_output=False)
-            pred_track_instances.masks = masks.squeeze().cpu().numpy()
-
-            if args.cpu_off_load:
-                sam_model.model = sam_model.model.to('cpu')
 
         visualizer.add_datasample(
             'mot',

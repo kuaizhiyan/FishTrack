@@ -97,6 +97,7 @@ def main(args):
             img = mmcv.imread(img_path)
         # result [TrackDataSample]
         result = inference_mot(model, img, frame_id=i, video_len=len(imgs))
+        print(result)
         if args.out is not None:
             if in_video or out_video:
                 out_file = osp.join(out_path, f'{i:06d}.jpg')

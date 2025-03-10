@@ -20,12 +20,14 @@ custom_hooks = [
 
 detector = _base_.model
 detector.pop('data_preprocessor')
-detector.bbox_head.update(dict(num_classes=1))
+detector.bbox_head.num_classes=1
+# detector.bbox_head.update(dict(num_classes=1))
 detector['init_cfg'] = dict(
     type='Pretrained',
     checkpoint=  # noqa: E251
     'models/best_fishtrackcoco_bbox_mAP_epoch_30.pth')  # noqa: E501
 del _base_.model
+
 
 model = dict(
     type='DeepSORT',
