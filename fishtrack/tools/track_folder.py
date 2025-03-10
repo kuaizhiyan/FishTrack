@@ -93,6 +93,10 @@ def parse_args():
     parser.add_argument('--fps', type=int, default=30, help='video fps')
     parser.add_argument(
         '--out', type=str, default='demo.mp4', help='output video name')
+    
+    # writting params
+    parser.add_argument('--save-img',action='store_true', help='save vis tracking imgs')
+    parser.add_argument('--to-video',action='store_true', help='turn tracking imgs to video')
     return parser.parse_args()
 
 
@@ -170,6 +174,66 @@ def run_detector(model, image_new, args, label_name=None):
     return pred_instances
 
 
+def process_directory(input_dir, output_file, args, det_model, sort_model):
+    imgs = sorted(
+        filter(lambda x: x.lower().endswith(IMG_EXTENSIONS), os.listdir(input_dir)),
+        key=lambda x: int(''.join(filter(str.isdigit, x)))
+    )
+    
+    if not args.cpu_off_load:
+        det_model = det_model.to(args.det_device)
+    
+    tracker = sort_model.tracker
+    
+    track_results = []
+    
+    for frame_id, img in tqdm(enumerate(imgs), total=len(imgs), desc=f"Processing {input_dir}"):
+        image_path = osp.join(input_dir, img)
+        image_new = cv2.imread(image_path)
+        image_copy = Image.open(image_path).convert('RGB')
+        
+        pred_instances = run_detector(det_model, image_new, args, 'fish')
+        
+        img_data_sample = DetDataSample()
+        img_data_sample.pred_instances = pred_instances
+        img_data_sample.set_metainfo(dict(frame_id=frame_id, img_shape=(image_copy.height, image_copy.width)))
+        
+        img_track, _ = sort_transform(image_new, None)
+        img_track = img_track.unsqueeze(0)
+        
+        data_preprocessor = dict(
+            type='TrackDataPreprocessor',
+            mean=[123.675, 116.28, 103.53],
+            std=[58.395, 57.12, 57.375],
+            bgr_to_rgb=True,
+            pad_size_divisor=32
+        )
+        
+        with torch.no_grad():
+            pred_track_instances = tracker.track(
+                model=sort_model,
+                img=img_track,
+                data_sample=img_data_sample,
+                data_preprocessor=data_preprocessor
+            )
+        
+        img_data_sample.pred_track_instances = pred_track_instances
+        
+        instances_id = pred_track_instances.instances_id.cpu().numpy()
+        labels = pred_track_instances.labels.cpu().numpy()
+        bboxes = pred_track_instances.bboxes.cpu().numpy()
+        scores = pred_track_instances.scores.cpu().numpy()
+        
+        for obj_id, label, bbox, conf in zip(instances_id, labels, bboxes, scores):
+            x1, y1, x2, y2 = bbox
+            w = x2 - x1
+            h = y2 - y1
+            track_results.append(f"{frame_id+1},{obj_id+1},{x1:.3f},{y1:.3f},{w:.3f},{h:.3f},{conf:.3f},-1,-1,-1")
+    
+    with open(output_file, "w") as f:
+        f.write("\n".join(track_results))
+
+
 def main():
     if mmdet is None:
         raise RuntimeError('mmdet is not installed,\
@@ -181,42 +245,9 @@ def main():
             raise RuntimeError(
                 'args.cpu_off_load is an invalid parameter due to '
                 'detection and mask model IS on the cpu.')
-
- # define output
+    # define output
     out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
-
-    # define input
-    if osp.isdir(args.inputs):
-        # imgs = sorted(
-        #     # filter(lambda x: x.endswith(IMG_EXTENSIONS),
-        #     #        os.listdir(args.inputs)),
-        #     # key=lambda x: x.split('.')[0])
-        #     )
-        imgs = sorted(
-            filter(lambda x: x.lower().endswith(IMG_EXTENSIONS), os.listdir(args.inputs)),  # 过滤图片文件
-            key=lambda x: int(''.join(filter(str.isdigit, x)))  # 提取文件名中的数字并排序
-        )
-        in_video = False
-    else:
-        imgs = []
-        cap = cv2.VideoCapture(args.inputs)
-        video_fps = int(cap.get(cv2.CAP_PROP_FPS))
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            imgs.append(frame)
-        in_video = True
-
-    # define fs
-    fps = args.fps
-    if args.show:
-        if fps is None and in_video:
-            fps = video_fps
-        if not fps:
-            raise ValueError('Please set the FPS for the output video.')
-        fps = int(fps)
         
     # visulization
     label_name = 'fish'
@@ -230,88 +261,24 @@ def main():
     cfg = Config.fromfile(args.tracker_path)
     sort_model = MODELS.build(cfg.model)
     sort_model.eval()
-    tracker = sort_model.tracker
     
     if not args.cpu_off_load:
         det_model = det_model.to(args.det_device)
     
-    # 保存跟踪结果
-    track_results = []
-
     # for frame_id, img in enumerate(imgs):
-    for frame_id, img in tqdm(enumerate(imgs), total=len(imgs), desc="Processing Frames"):
-        save_path = os.path.join(args.out_dir, f'{frame_id:06d}.jpg')
-
-        if isinstance(img, str):
-            image_path = osp.join(args.inputs, img)                 # 
-            image_new = cv2.imread(image_path)
-            image_copy = Image.open(image_path).convert('RGB') 
-        # print('image_new type:',type(image_new))
-        # print('image_copy type:',type(image_copy))
-
-
-        pred_instances = run_detector(det_model, image_new, args, label_name) # {boxes[325,4]原图尺寸,labels[325],scores[325]} ,给出的还是对应的下标，只不过标签可以手动输入
-        # print('image_new type:',type(image_new))
+    base_dir = osp.join(args.inputs, "train")
+    sub_dirs = ["fish1/img1", "fish2/img1", "fish4/img1"]
+    
+    data_dir = osp.join(args.out_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    
+    for sub_dir in sub_dirs:
+        input_dir = osp.join(base_dir, sub_dir)
+        output_file = osp.join(data_dir, f"{sub_dir.split('/')[0]}.txt")
         
-        # track input
-        img_data_sample = DetDataSample()                           # 构造 DetDataSample()
-        img_data_sample.pred_instances = pred_instances
-        # print('image_copy type:',type(image_copy))
-        img_data_sample.set_metainfo(dict(frame_id=frame_id,img_shape=(image_copy.height,image_copy.width)))       # 所以，只要使用检测器给出检测结果，送到 Tracker 里面就好了
+        if osp.isdir(input_dir):
+            process_directory(input_dir, output_file, args, det_model, sort_model)
 
-        # track
-        img_track,_ = sort_transform(image_new, None)
-        img_track = img_track.unsqueeze(0)                                #  'The img must be 5D Tensor (N, T, C, H, W).'  # [1,1,3,640,1088]，只是tensor 之后的
-        data_preprocessor=dict(
-                                type='TrackDataPreprocessor',
-                                mean=[123.675, 116.28, 103.53],
-                                std=[58.395, 57.12, 57.375],
-                                bgr_to_rgb=True,
-                                pad_size_divisor=32)
-        with torch.no_grad():
-            pred_track_instances = tracker.track(
-                                                model=sort_model,
-                                                img=img_track,
-                                                data_sample=img_data_sample,
-                                                data_preprocessor=data_preprocessor,
-                                                # rescale=False
-                                                )
-        img_data_sample.pred_track_instances = pred_track_instances
-
-        vis_image = image_new[..., ::-1]
-
-        # visualizer.add_datasample(
-        #     'mot',
-        #     vis_image,
-        #     data_sample=img_data_sample,        # pred_track_instance
-        #     show=False,
-        #     # args.show,
-        #     draw_gt=False,
-        #     out_file=save_path,
-        #     wait_time=float(1 / int(fps)) if fps else 0,
-        #     pred_score_thr=0.0,
-        #     step=frame_id)
-
-        # 本地写入逻辑      
-        instances_id = pred_track_instances.instances_id.cpu().numpy()  # [n,1]
-        labels = pred_track_instances.labels.cpu().numpy()  # [n,1]
-        bboxes = pred_track_instances.bboxes.cpu().numpy()  # [n,4]
-        scores = pred_track_instances.scores.cpu().numpy()  # [n,1]
-
-        # 遍历当前帧的所有目标，存入 track_results
-        for obj_id, label, bbox, conf in zip(instances_id, labels, bboxes, scores):
-            x1, y1, x2, y2 = bbox  # 解包 bbox
-            w = x2 - x1
-            h = y2 - y1
-            # conf = 1.0  # 如果有置信度信息，可以替换此值
-            track_results.append(f"{frame_id+1},{obj_id+1},{x1:.3f},{y1:.3f},{w:.3f},{h:.3f},{conf:.3f},-1,-1,-1") # 注意 frame / id 是否从 1 开始 
-
-
-    # mmcv.frames2video(args.out_dir, args.out, fps=fps, fourcc='mp4v')
-
-    # 一次性写入文件
-    with open(os.path.join(args.out_dir,"fish2.txt"), "w") as f:
-        f.write("\n".join(track_results))
 
 
 if __name__ == '__main__':

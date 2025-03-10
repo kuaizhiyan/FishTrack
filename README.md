@@ -204,7 +204,16 @@ config
 
 **完整 FishTrack 测试**
 
+ps: 目前可视化等功能还没有调试。
 
+使用这段代码，将生成 TrackEval 格式的评估文件，直接复制输出路径至 TrackEval 即可评估.
+```bash
+python fishtrack/tools/track_folder.py /share/Lab_Datasets/fish_track/ /home/kzy/project/PartDecoder/mmdetection/configs/yolox/yolox_s_8xb8-fishtrack_detection.py models/best_fishtrackcoco_bbox_mAP_epoch_30.pth  --out-dir work_dirs/sort_yolox_1742 --tracker-path /home/kzy/project/PartDecoder/mmdetection/configs/sort/sort_yolox_s_fish_track.py
+```
+评估命令（详细见上文）：
+```bash
+python scripts/run_mot_challenge.py --BENCHMARK fish_track --SPLIT_TO_EVAL test --TRACKERS_TO_EVAL sort_yolox
+```
 
 
 ## 四、开放集跟踪

@@ -144,6 +144,9 @@ class SORTTracker(BaseTracker):
         frame_id = metainfo.get('frame_id', -1)
         if frame_id == 0:
             self.reset()
+            print('#'*10)
+            print('SORTTracker Reset')
+            print('#'*10)
         if not hasattr(self, 'kf'):
             self.kf = self.motion
 
