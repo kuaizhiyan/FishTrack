@@ -232,7 +232,7 @@ class YOLOXHead(BaseDenseHead):
                         cls_scores: List[Tensor],
                         bbox_preds: List[Tensor],
                         objectnesses: Optional[List[Tensor]],
-                        batch_img_metas: Optional[List[dict]] = None,
+                        batch_img_metas: Optional[List[dict]] = None,       # fish1/10.jpg (384,640) yolox train:(640,640)
                         cfg: Optional[ConfigDict] = None,
                         rescale: bool = False,
                         with_nms: bool = True) -> List[InstanceData]:
@@ -295,20 +295,20 @@ class YOLOXHead(BaseDenseHead):
             for objectness in objectnesses
         ]
 
-        flatten_cls_scores = torch.cat(flatten_cls_scores, dim=1).sigmoid()
+        flatten_cls_scores = torch.cat(flatten_cls_scores, dim=1).sigmoid()     # 为什么置信度都是 0.08 ?? 
         flatten_bbox_preds = torch.cat(flatten_bbox_preds, dim=1)
-        flatten_objectness = torch.cat(flatten_objectness, dim=1).sigmoid()
+        flatten_objectness = torch.cat(flatten_objectness, dim=1).sigmoid()     # 可见度最大只有 0.05, yolox 最大 0.996
         flatten_priors = torch.cat(mlvl_priors)
 
         flatten_bboxes = self._bbox_decode(flatten_priors, flatten_bbox_preds)
 
         result_list = []
         for img_id, img_meta in enumerate(batch_img_metas):
-            max_scores, labels = torch.max(flatten_cls_scores[img_id], 1)
+            max_scores, labels = torch.max(flatten_cls_scores[img_id], 1)   # [0.33,0.48,0.34]
             valid_mask = flatten_objectness[
                 img_id] * max_scores >= cfg.score_thr
             results = InstanceData(
-                bboxes=flatten_bboxes[img_id][valid_mask],
+                bboxes=flatten_bboxes[img_id][valid_mask],              # 置信度都是 0.01 bbox 还有负值，什么意思. 换用 (640,640) 一切正常， 类别都是 0:fish [44,4]
                 scores=max_scores[valid_mask] *
                 flatten_objectness[img_id][valid_mask],
                 labels=labels[valid_mask])

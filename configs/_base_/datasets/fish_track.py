@@ -50,6 +50,10 @@ test_pipeline = [
         transforms=[
             dict(type='LoadImageFromFile', backend_args=backend_args),
             dict(type='Resize', scale=img_scale, keep_ratio=True),
+            dict(
+                type='Pad',
+                pad_to_square=True,
+                pad_val=dict(img=(114.0, 114.0, 114.0))),
             dict(type='LoadTrackAnnotations')
         ]),
     dict(type='PackTrackInputs')
@@ -87,7 +91,7 @@ val_dataloader = dict(
 # test_dataloader = val_dataloader
 test_dataloader = dict(
     batch_size=1,
-    num_workers=2,
+    num_workers=1,
     persistent_workers=True,
     # Now we support two ways to test, image_based and video_based
     # if you want to use video_based sampling, you can use as follows
