@@ -310,7 +310,7 @@ def main():
     # mmcv.frames2video(args.out_dir, args.out, fps=fps, fourcc='mp4v')
 
     # 一次性写入文件
-    with open(os.path.join(args.out_dir,"fish4.txt"), "w") as f:
+    with open(os.path.join(args.out_dir,"fish2.txt"), "w") as f:
         f.write("\n".join(track_results))
 
 

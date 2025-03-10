@@ -42,6 +42,46 @@ dataset 配置文件：'./configs/_base_/datasets/weizhoudao_detection.py'
 TrackEval 自定义数据集及评估方法： https://github.com/JonathonLuiten/TrackEval/tree/master/docs/MOTChallenge-Official
 
 
+**在 TrackEval 中添加 BenchMark**
+
+1. 在 mot_challenge 文件夹下创建 benchmark `fish_track-test` .
+2. 每个文件夹下包含 `gt/gt.txt` 和 seqinfo.ini
+```bash
+|--fish_track-test
+    |--fish1
+        |--gt
+            |--gt.txt
+        |--seqinfo.ini
+    |--fish2
+    ...
+```
+
+![alt text](image-2.png)
+
+
+**使用 TrackEval 评估**
+1. 创建对应的 Benchmark 名称 + split 命名的文件夹：
+
+![alt text](image.png)
+
+2. 在文件夹下创建跟踪器名称，并将跟踪结果放置在 data 路径下
+```bash
+|--mot_challenge
+    |--fish_track-test
+        |--sort_yolox
+            |--data
+                |--fish1.txt
+                |--fish2.txt
+                |--fish4.txt
+
+```
+![alt text](image-1.png)
+
+3. 执行评估命令
+
+```bash
+python scripts/run_mot_challenge.py --BENCHMARK fish_track --SPLIT_TO_EVAL test --TRACKERS_TO_EVAL sort_yolox
+```
 
 
 ## 二、 训练
@@ -118,6 +158,16 @@ python tools/train.py configs/reid/reid_r50_fishreid_attention.py
 
 ## 三、 测试
 ### 1. 在 fish_track 数据集上进行完整测试
+
+ps: 
+``` bash
+mmdetection  官方源码在 test_tracking.py 执行时，预处理流程可能与 image_demo.py 不同，暂时没有找到引起差别的地方。
+
+采用相同的配置文件和权重文件，输入特征图 x 不同，导致 test_tracking 检测器预测输出为空，可见度几乎为 0. 
+
+此方法暂时弃用。
+```
+
 配置文件：./configs/deepsort/deepsort_yolox-s_100e_fishtrack.py
 
 测试命令：
@@ -142,6 +192,20 @@ config
 ```bash
  python tools/test_tracking.py ./configs/deepsort/deepsort_yolox-s_100e_fishtrack.py
 ```
+
+### 2. Tracking pipeline 方法测试
+
+按照 `mmtracking_open_detection` 中 `tracking_deepsort` 方法思路，单独加载检测器配置文件，可以实现正常检测。
+
+**检测单个文件夹**
+```bash
+ python fishtrack/tools/tracking_pipeline.py /share/Lab_Datasets/fish_track/train/fish1/img1/ /home/kzy/project/PartDecoder/mmdetection/configs/yolox/yolox_s_8xb8-fishtrack_detection.py models/best_fishtrackcoco_bbox_mAP_epoch_30.pth --out-dir work_dirs/tracking_pipeline_3101515 --tracker-path /home/kzy/project/PartDecoder/mmdetection/configs/sort/sort_yolox_s_fish_track.py
+```
+
+**完整 FishTrack 测试**
+
+
+
 
 ## 四、开放集跟踪
 
